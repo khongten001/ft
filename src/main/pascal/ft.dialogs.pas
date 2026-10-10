@@ -6,14 +6,105 @@ interface
 
 uses
   ctypes, SysUtils, Classes, Math, Types,
-  Floria.Image.Core, Floria.Canvas.Agg,
+  Floria.Image.Core, Floria.Canvas.Agg, Floria.Font,
   Floria.SVG.DOM, Floria.SVG.Parser, Floria.SVG.Rasterizer,
   Ft.Widget, Ft.Widget.Buttons, Ft.Widget.Entries, Ft.Widget.Texts,
   Ft.Widget.Containers, Ft.Widget.Splitters, Ft.Widget.TreeViews,
   Ft.Widget.Tables, Ft.Widget.Selectors, Ft.Widget.PathBars,
-  Ft.Widget.Layouts, Ft.Window, Ft.Theme, Ft.Icons;
+  Ft.Widget.Layouts, Ft.Widget.Images, Ft.Widget.TextAreas,
+  Ft.Window, Ft.Theme, Ft.Icons;
 
 type
+  TFtMessageDialogType = (
+    fmdCustom = 0,
+    fmdInformation = 1,
+    fmdWarning = 2,
+    fmdError = 3,
+    fmdQuestion = 4,
+    fmdSuccess = 5
+  );
+
+  TFtMessageDialogButtons = (
+    fmbOk = 0,
+    fmbOkCancel = 1,
+    fmbYesNo = 2,
+    fmbYesNoCancel = 3,
+    fmbRetryCancel = 4,
+    fmbCustom = 5
+  );
+
+  TFtCustomDialogButton = record
+    Caption: string;
+    ModalResult: Integer;
+    IsDefault: Boolean;
+    IsDestructive: Boolean;
+  end;
+
+  { TFtMessageDialog — customizable alert, confirmation, and prompt dialog }
+  TFtMessageDialog = class
+  private
+    FWindow:               TFtWindow;
+    FDialogType:           TFtMessageDialogType;
+    FButtonsType:          TFtMessageDialogButtons;
+    FTitle:                string;
+    FInstruction:          string;
+    FMessage:              string;
+    FDetails:              string;
+    FVerificationText:     string;
+    FVerificationChecked:  Boolean;
+    FCustomIconSvg:        string;
+    FButtons:              array of TFtCustomDialogButton;
+    FDefaultResult:        Integer;
+    FCancelResult:         Integer;
+
+    { UI Components }
+    FRootVBox:             TFtVBox;
+    FContentHBox:          TFtHBox;
+    FIconWidget:           TFtImage;
+    FTextVBox:             TFtVBox;
+    FInstructionLabel:     TFtLabel;
+    FMessageLabel:         TFtLabel;
+    FBtnToggleDetails:     TFtButton;
+    FDetailsTextArea:      TFtTextArea;
+    FDetailsExpanded:      Boolean;
+    FFooterHBox:           TFtHBox;
+    FVerificationCheckBox: TFtCheckBox;
+
+    procedure BuildUI();
+    procedure SetupDefaultButtons();
+    function GetEffectiveTitle(): string;
+    function GetDialogIconSvg(): string;
+
+    class procedure CbButtonClick(Sender: Pointer; UserData: Pointer); cdecl; static;
+    class procedure CbToggleDetails(Sender: Pointer; UserData: Pointer); cdecl; static;
+    class procedure CbVerificationToggle(Sender: Pointer; Checked: cint32; UserData: Pointer); cdecl; static;
+    class procedure CbWindowKey(AWindow: Pointer; AKeySym: Cardinal; AIsDown: Integer; AUserData: Pointer); cdecl; static;
+  public
+    constructor Create(const ATitle, AInstruction, AMessage: string;
+      ADialogType: TFtMessageDialogType = fmdInformation;
+      AButtons: TFtMessageDialogButtons = fmbOk);
+    destructor Destroy(); override;
+
+    procedure AddButton(const ACaption: string; AModalResult: Integer;
+      AIsDefault: Boolean = False; AIsDestructive: Boolean = False);
+    procedure ClearButtons();
+
+    function ShowModal(): Integer;
+
+    property Title: string read FTitle write FTitle;
+    property Instruction: string read FInstruction write FInstruction;
+    property Message: string read FMessage write FMessage;
+    property Details: string read FDetails write FDetails;
+    property VerificationText: string read FVerificationText write FVerificationText;
+    property VerificationChecked: Boolean read FVerificationChecked write FVerificationChecked;
+    property CustomIconSvg: string read FCustomIconSvg write FCustomIconSvg;
+    property DialogType: TFtMessageDialogType read FDialogType write FDialogType;
+    property ButtonsType: TFtMessageDialogButtons read FButtonsType write FButtonsType;
+    property DefaultResult: Integer read FDefaultResult write FDefaultResult;
+    property CancelResult: Integer read FCancelResult write FCancelResult;
+    property Window: TFtWindow read FWindow;
+  end;
+
   TFtDialogType = (
     fdtOpenFile = 0,
     fdtSaveFile = 1,
@@ -147,6 +238,15 @@ function FtDialogOpenFile(const ATitle: string; const ADir: string = '';
 function FtDialogSaveFile(const ATitle: string; const ADir: string = '';
   const ADefaultName: string = ''; const AFilter: string = ''): string;
 function FtDialogSelectFolder(const ATitle: string; const ADir: string = ''): string;
+
+{ Message Dialog one-shot functions }
+function FtShowMessage(const AMessage: string; const ATitle: string = ''): Integer;
+function FtShowInfo(const ATitle, AInstruction, AMessage: string): Integer;
+function FtShowWarning(const ATitle, AInstruction, AMessage: string): Integer;
+function FtShowError(const ATitle, AInstruction, AMessage: string; const ADetails: string = ''): Integer;
+function FtConfirm(const ATitle, AInstruction, AMessage: string): Boolean;
+function FtConfirmWithVerification(const ATitle, AInstruction, AMessage, AVerificationText: string;
+  var AVerificationChecked: Boolean): Boolean;
 
 implementation
 
@@ -1156,6 +1256,488 @@ begin
       dlg.Directory := ADir;
     if dlg.Execute() then
       Result := dlg.SelectedPath;
+  finally
+    dlg.Free();
+  end;
+end;
+
+{ ─────────────────────── TFtMessageDialog ────────────────────────────────── }
+
+constructor TFtMessageDialog.Create(const ATitle, AInstruction, AMessage: string;
+  ADialogType: TFtMessageDialogType = fmdInformation;
+  AButtons: TFtMessageDialogButtons = fmbOk);
+begin
+  inherited Create();
+  FTitle := ATitle;
+  FInstruction := AInstruction;
+  FMessage := AMessage;
+  FDialogType := ADialogType;
+  FButtonsType := AButtons;
+  FDetails := '';
+  FVerificationText := '';
+  FVerificationChecked := False;
+  FCustomIconSvg := '';
+  FWindow := nil;
+  FDefaultResult := mrOk;
+  FCancelResult := mrCancel;
+  FDetailsExpanded := False;
+  SetLength(FButtons, 0);
+  SetupDefaultButtons();
+end;
+
+destructor TFtMessageDialog.Destroy();
+begin
+  if Assigned(FWindow) then
+  begin
+    FWindow.Free();
+    FWindow := nil;
+  end;
+  SetLength(FButtons, 0);
+  inherited Destroy();
+end;
+
+procedure TFtMessageDialog.ClearButtons();
+begin
+  SetLength(FButtons, 0);
+  FButtonsType := fmbCustom;
+end;
+
+procedure TFtMessageDialog.AddButton(const ACaption: string; AModalResult: Integer;
+  AIsDefault: Boolean = False; AIsDestructive: Boolean = False);
+var
+  idx: Integer;
+begin
+  idx := Length(FButtons);
+  SetLength(FButtons, idx + 1);
+  FButtons[idx].Caption := ACaption;
+  FButtons[idx].ModalResult := AModalResult;
+  FButtons[idx].IsDefault := AIsDefault;
+  FButtons[idx].IsDestructive := AIsDestructive;
+  if AIsDefault then
+    FDefaultResult := AModalResult;
+end;
+
+procedure TFtMessageDialog.SetupDefaultButtons();
+begin
+  if Length(FButtons) > 0 then Exit;
+
+  case FButtonsType of
+    fmbOk:
+      begin
+        AddButton('OK', mrOk, True, False);
+        FDefaultResult := mrOk;
+        FCancelResult := mrOk;
+      end;
+    fmbOkCancel:
+      begin
+        AddButton('Cancel', mrCancel, False, False);
+        AddButton('OK', mrOk, True, False);
+        FDefaultResult := mrOk;
+        FCancelResult := mrCancel;
+      end;
+    fmbYesNo:
+      begin
+        AddButton('No', mrNo, False, False);
+        AddButton('Yes', mrYes, True, False);
+        FDefaultResult := mrYes;
+        FCancelResult := mrNo;
+      end;
+    fmbYesNoCancel:
+      begin
+        AddButton('Cancel', mrCancel, False, False);
+        AddButton('No', mrNo, False, False);
+        AddButton('Yes', mrYes, True, False);
+        FDefaultResult := mrYes;
+        FCancelResult := mrCancel;
+      end;
+    fmbRetryCancel:
+      begin
+        AddButton('Cancel', mrCancel, False, False);
+        AddButton('Retry', mrRetry, True, False);
+        FDefaultResult := mrRetry;
+        FCancelResult := mrCancel;
+      end;
+  end;
+end;
+
+function TFtMessageDialog.GetEffectiveTitle(): string;
+begin
+  if FTitle <> '' then
+    Exit(FTitle);
+  case FDialogType of
+    fmdInformation: Result := 'Information';
+    fmdWarning:     Result := 'Warning';
+    fmdError:       Result := 'Error';
+    fmdQuestion:    Result := 'Question';
+    fmdSuccess:     Result := 'Success';
+    else            Result := 'Notice';
+  end;
+end;
+
+function TFtMessageDialog.GetDialogIconSvg(): string;
+begin
+  if FCustomIconSvg <> '' then
+    Exit(FCustomIconSvg);
+  case FDialogType of
+    fmdInformation: Result := FtGetIconSvg('dialog-info');
+    fmdWarning:     Result := FtGetIconSvg('dialog-warning');
+    fmdError:       Result := FtGetIconSvg('dialog-error');
+    fmdQuestion:    Result := FtGetIconSvg('dialog-question');
+    fmdSuccess:     Result := FtGetIconSvg('dialog-success');
+    else            Result := '';
+  end;
+end;
+
+class procedure TFtMessageDialog.CbButtonClick(Sender: Pointer; UserData: Pointer); cdecl;
+var
+  dlg: TFtMessageDialog;
+  btn: TFtButton;
+begin
+  dlg := TFtMessageDialog(UserData);
+  btn := TFtButton(Sender);
+  if Assigned(dlg) and Assigned(btn) and Assigned(dlg.FWindow) then
+  begin
+    dlg.FWindow.ModalResult := btn.Tag;
+    dlg.FWindow.Hide();
+  end;
+end;
+
+class procedure TFtMessageDialog.CbToggleDetails(Sender: Pointer; UserData: Pointer); cdecl;
+var
+  dlg: TFtMessageDialog;
+  newH: Integer;
+begin
+  dlg := TFtMessageDialog(UserData);
+  if not Assigned(dlg) or not Assigned(dlg.FWindow) then Exit;
+  dlg.FDetailsExpanded := not dlg.FDetailsExpanded;
+  if Assigned(dlg.FDetailsTextArea) then
+    dlg.FDetailsTextArea.Visible := dlg.FDetailsExpanded;
+  if dlg.FDetailsExpanded then
+  begin
+    if Assigned(dlg.FBtnToggleDetails) then
+      dlg.FBtnToggleDetails.Caption := 'Details ▲';
+    newH := dlg.FWindow.Height + 140;
+  end
+  else
+  begin
+    if Assigned(dlg.FBtnToggleDetails) then
+      dlg.FBtnToggleDetails.Caption := 'Details ▼';
+    newH := dlg.FWindow.Height - 140;
+  end;
+  dlg.FWindow.Resize(dlg.FWindow.Width, newH);
+  dlg.FWindow.UpdateLayout();
+  dlg.FWindow.Invalidate();
+end;
+
+class procedure TFtMessageDialog.CbVerificationToggle(Sender: Pointer; Checked: cint32; UserData: Pointer); cdecl;
+var
+  dlg: TFtMessageDialog;
+begin
+  dlg := TFtMessageDialog(UserData);
+  if Assigned(dlg) then
+    dlg.FVerificationChecked := (Checked <> 0);
+end;
+
+class procedure TFtMessageDialog.CbWindowKey(AWindow: Pointer; AKeySym: Cardinal; AIsDown: Integer; AUserData: Pointer); cdecl;
+var
+  dlg: TFtMessageDialog;
+begin
+  if AIsDown = 0 then Exit;
+  dlg := TFtMessageDialog(AUserData);
+  if not Assigned(dlg) or not Assigned(dlg.FWindow) then Exit;
+
+  // Return / Enter (XK_Return: $FF0D=65293, XK_KP_Enter: $FF8D=65421)
+  if (AKeySym = 65293) or (AKeySym = 65421) then
+  begin
+    dlg.FWindow.ModalResult := dlg.FDefaultResult;
+    dlg.FWindow.Hide();
+  end
+  // Escape (XK_Escape: $FF1B=65307)
+  else if (AKeySym = 65307) then
+  begin
+    dlg.FWindow.ModalResult := dlg.FCancelResult;
+    dlg.FWindow.Hide();
+  end;
+end;
+
+procedure TFtMessageDialog.BuildUI();
+var
+  dlgW, dlgH: Integer;
+  contentW, textColW: Integer;
+  sysFont, fntInst, fntMsg: TFtFont;
+  instLines, msgLines: TFtTextLineArray;
+  instH, msgH, textH, contentH: Integer;
+  verificationH, detailsH, buttonsH: Integer;
+  svgIcon: string;
+  btn: TFtButton;
+  i: Integer;
+  posX, posY: Integer;
+  btnW: Integer;
+  measurer: TFtText;
+  detailsHBox: TFtHBox;
+begin
+  if Assigned(FWindow) then Exit;
+
+  SetupDefaultButtons();
+
+  dlgW := 480;
+  contentW := dlgW - 40;
+  textColW := contentW - 48 - 16; { 48px icon + 16px gap }
+
+  sysFont := FtGetSystemFont();
+  if not Assigned(sysFont) then
+    sysFont := FtFontManager().GetFont('sans-serif,10');
+
+  instH := 0;
+  msgH := 0;
+  measurer := TFtText.Create(nil);
+  try
+    measurer.WordWrap := True;
+    if FInstruction <> '' then
+    begin
+      fntInst := FtFontManager().GetFont(sysFont.FamilyName + ',' + IntToStr(Round(sysFont.Size * 1.15)) + ',bold');
+      if not Assigned(fntInst) then fntInst := sysFont;
+      measurer.Text := FInstruction;
+      instLines := measurer.BuildLines(fntInst, textColW);
+      instH := Length(instLines) * Round(fntInst.Size * 1.35) + 6;
+      if instH < Round(fntInst.Size * 1.35) then instH := Round(fntInst.Size * 1.35) + 6;
+    end;
+
+    if FMessage <> '' then
+    begin
+      fntMsg := sysFont;
+      measurer.Text := FMessage;
+      msgLines := measurer.BuildLines(fntMsg, textColW);
+      msgH := Length(msgLines) * Round(fntMsg.Size * 1.35) + 6;
+      if msgH < Round(fntMsg.Size * 1.35) then msgH := Round(fntMsg.Size * 1.35) + 6;
+    end;
+  finally
+    measurer.Free();
+  end;
+
+  textH := instH + msgH;
+  if (FInstruction <> '') and (FMessage <> '') then
+    textH := textH + 6;
+  contentH := Max(48, textH);
+
+  verificationH := 0;
+  if FVerificationText <> '' then
+    verificationH := 26 + 12;
+
+  detailsH := 0;
+  if FDetails <> '' then
+    detailsH := 28 + 10;
+
+  buttonsH := 32 + 16;
+  dlgH := 40 + contentH + detailsH + verificationH + buttonsH;
+  if dlgH < 170 then dlgH := 170;
+
+  FWindow := FtCreateWindow(dlgW, dlgH, GetEffectiveTitle(), ftwtDialog);
+  FWindow.OnWindowKey := @CbWindowKey;
+  FWindow.WindowUserData := Self;
+
+  FRootVBox := TFtVBox.Create(FWindow);
+  FRootVBox.SetBounds(0, 0, dlgW, dlgH);
+  FRootVBox.SetPadding(20.0, 20.0);
+  FRootVBox.Gap := 14.0;
+  FWindow.RootLayout := FRootVBox;
+
+  FContentHBox := TFtHBox.Create(FRootVBox);
+  FContentHBox.AlignItems := ftaiStart;
+  FContentHBox.Gap := 16.0;
+
+  svgIcon := GetDialogIconSvg();
+  if svgIcon <> '' then
+  begin
+    FIconWidget := TFtImage.Create(FContentHBox, 0, 0, 48, 48);
+    FIconWidget.LoadSVGFromString(svgIcon);
+    FIconWidget.PreferredWidth := 48;
+    FIconWidget.PreferredHeight := 48;
+    FIconWidget.FlexShrink := 0.0;
+  end;
+
+  FTextVBox := TFtVBox.Create(FContentHBox);
+  FTextVBox.FlexGrow := 1.0;
+  FTextVBox.Gap := 6.0;
+
+  if FInstruction <> '' then
+  begin
+    FInstructionLabel := TFtLabel.Create(FTextVBox);
+    FInstructionLabel.WordWrap := True;
+    FInstructionLabel.Text := FInstruction;
+    FInstructionLabel.FontDesc := sysFont.FamilyName + ',' + IntToStr(Round(sysFont.Size * 1.15)) + ',bold';
+    FInstructionLabel.PreferredHeight := instH;
+  end;
+
+  if FMessage <> '' then
+  begin
+    FMessageLabel := TFtLabel.Create(FTextVBox);
+    FMessageLabel.WordWrap := True;
+    FMessageLabel.Text := FMessage;
+    if FInstruction <> '' then
+      FMessageLabel.InlineStyle := 'color: #64748b;'
+    else
+      FMessageLabel.InlineStyle := '';
+    FMessageLabel.PreferredHeight := msgH;
+  end;
+
+  if FDetails <> '' then
+  begin
+    detailsHBox := TFtHBox.Create(FRootVBox);
+    detailsHBox.PreferredHeight := 28;
+    detailsHBox.AlignItems := ftaiCenter;
+
+    FBtnToggleDetails := TFtButton.Create(detailsHBox);
+    FBtnToggleDetails.Caption := 'Details ▼';
+    FBtnToggleDetails.SetBounds(0, 0, 96, 26);
+    FBtnToggleDetails.PreferredWidth := 96;
+    FBtnToggleDetails.PreferredHeight := 26;
+    FBtnToggleDetails.InlineStyle := 'font-size: 11px;';
+    FBtnToggleDetails.OnClick := @CbToggleDetails;
+    FBtnToggleDetails.UserData := Self;
+
+    FDetailsTextArea := TFtTextArea.Create(FRootVBox);
+    FDetailsTextArea.Text := FDetails;
+    FDetailsTextArea.ReadOnly := True;
+    FDetailsTextArea.Visible := False;
+    FDetailsTextArea.SetBounds(0, 0, contentW, 110);
+    FDetailsTextArea.PreferredHeight := 110;
+    FDetailsTextArea.InlineStyle := 'font-family: monospace; font-size: 11px;';
+  end;
+
+  FFooterHBox := TFtHBox.Create(FRootVBox);
+  FFooterHBox.AlignItems := ftaiCenter;
+  FFooterHBox.Gap := 10.0;
+
+  if FVerificationText <> '' then
+  begin
+    FVerificationCheckBox := TFtCheckBox.Create(FFooterHBox);
+    FVerificationCheckBox.Caption := FVerificationText;
+    FVerificationCheckBox.Checked := FVerificationChecked;
+    FVerificationCheckBox.OnToggle := @CbVerificationToggle;
+    FVerificationCheckBox.UserData := Self;
+  end;
+
+  TFtSpacer.Create(FFooterHBox).FlexGrow := 1.0;
+
+  for i := 0 to High(FButtons) do
+  begin
+    btn := TFtButton.Create(FFooterHBox);
+    btn.Caption := FButtons[i].Caption;
+    btn.Tag := FButtons[i].ModalResult;
+    btn.OnClick := @CbButtonClick;
+    btn.UserData := Self;
+    btn.PreferredHeight := 32;
+    btnW := Max(80, Round(btn.GetPreferredWidth() + 20));
+    btn.SetBounds(0, 0, btnW, 32);
+    btn.PreferredWidth := btnW;
+    if FButtons[i].IsDefault then
+      btn.InlineStyle := 'background-color: #2563eb; color: #ffffff; border-color: #1d4ed8; font-weight: bold;'
+    else if FButtons[i].IsDestructive then
+      btn.InlineStyle := 'background-color: #ef4444; color: #ffffff; border-color: #dc2626; font-weight: bold;';
+  end;
+
+  if Assigned(GActiveWindow) and (GActiveWindow <> FWindow) and (GActiveWindow.Width > 0) then
+  begin
+    posX := GActiveWindow.X + (GActiveWindow.Width - dlgW) div 2;
+    posY := GActiveWindow.Y + (GActiveWindow.Height - dlgH) div 2;
+  end
+  else
+  begin
+    posX := (FWindow.ScreenWidth - dlgW) div 2;
+    posY := (FWindow.ScreenHeight - dlgH) div 2;
+  end;
+  if posX < 10 then posX := 10;
+  if posY < 30 then posY := 30;
+  FWindow.SetPosition(posX, posY);
+  FWindow.UpdateLayout();
+end;
+
+function TFtMessageDialog.ShowModal(): Integer;
+begin
+  BuildUI();
+  FWindow.ShowModal();
+  if Assigned(FVerificationCheckBox) then
+    FVerificationChecked := FVerificationCheckBox.Checked;
+  Result := FWindow.ModalResult;
+  if (Result = mrCancel) and (FCancelResult <> mrNone) then
+    Result := FCancelResult;
+end;
+
+function FtShowMessage(const AMessage: string; const ATitle: string = ''): Integer;
+var
+  dlg: TFtMessageDialog;
+begin
+  dlg := TFtMessageDialog.Create(ATitle, '', AMessage, fmdInformation, fmbOk);
+  try
+    Result := dlg.ShowModal();
+  finally
+    dlg.Free();
+  end;
+end;
+
+function FtShowInfo(const ATitle, AInstruction, AMessage: string): Integer;
+var
+  dlg: TFtMessageDialog;
+begin
+  dlg := TFtMessageDialog.Create(ATitle, AInstruction, AMessage, fmdInformation, fmbOk);
+  try
+    Result := dlg.ShowModal();
+  finally
+    dlg.Free();
+  end;
+end;
+
+function FtShowWarning(const ATitle, AInstruction, AMessage: string): Integer;
+var
+  dlg: TFtMessageDialog;
+begin
+  dlg := TFtMessageDialog.Create(ATitle, AInstruction, AMessage, fmdWarning, fmbOk);
+  try
+    Result := dlg.ShowModal();
+  finally
+    dlg.Free();
+  end;
+end;
+
+function FtShowError(const ATitle, AInstruction, AMessage: string; const ADetails: string = ''): Integer;
+var
+  dlg: TFtMessageDialog;
+begin
+  dlg := TFtMessageDialog.Create(ATitle, AInstruction, AMessage, fmdError, fmbOk);
+  try
+    dlg.Details := ADetails;
+    Result := dlg.ShowModal();
+  finally
+    dlg.Free();
+  end;
+end;
+
+function FtConfirm(const ATitle, AInstruction, AMessage: string): Boolean;
+var
+  dlg: TFtMessageDialog;
+begin
+  dlg := TFtMessageDialog.Create(ATitle, AInstruction, AMessage, fmdQuestion, fmbYesNo);
+  try
+    Result := (dlg.ShowModal() = mrYes);
+  finally
+    dlg.Free();
+  end;
+end;
+
+function FtConfirmWithVerification(const ATitle, AInstruction, AMessage, AVerificationText: string;
+  var AVerificationChecked: Boolean): Boolean;
+var
+  dlg: TFtMessageDialog;
+  res: Integer;
+begin
+  dlg := TFtMessageDialog.Create(ATitle, AInstruction, AMessage, fmdQuestion, fmbYesNo);
+  try
+    dlg.VerificationText := AVerificationText;
+    dlg.VerificationChecked := AVerificationChecked;
+    res := dlg.ShowModal();
+    AVerificationChecked := dlg.VerificationChecked;
+    Result := (res = mrYes);
   finally
     dlg.Free();
   end;

@@ -65,6 +65,7 @@ type
     FGridRow: Integer;
     FGridColSpan: Integer;
     FGridRowSpan: Integer;
+    FTag: PtrInt;
     function GetFont(): TFtFont; virtual;
     procedure SetFont(AValue: TFtFont); virtual;
     function GetFontDesc(): string; virtual;
@@ -173,6 +174,7 @@ type
     property GridRow: Integer read FGridRow write SetGridRow;
     property GridColSpan: Integer read FGridColSpan write SetGridColSpan;
     property GridRowSpan: Integer read FGridRowSpan write SetGridRowSpan;
+    property Tag: PtrInt read FTag write FTag;
   end;
 
 implementation

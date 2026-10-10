@@ -5418,6 +5418,190 @@ begin
   end;
 end;
 
+{ ──────────────────────── Message Dialogs ────────────────────────────── }
+
+function ft_message_dialog_create(title, instruction, message: PChar;
+  dialog_type, buttons_type: cint32): Pointer; cdecl; export;
+var
+  t, ins, m: string;
+begin
+  if Assigned(title) then t := string(title) else t := '';
+  if Assigned(instruction) then ins := string(instruction) else ins := '';
+  if Assigned(message) then m := string(message) else m := '';
+  try
+    Result := Pointer(TFtMessageDialog.Create(t, ins, m,
+      TFtMessageDialogType(dialog_type), TFtMessageDialogButtons(buttons_type)));
+  except
+    Result := nil;
+  end;
+end;
+
+procedure ft_message_dialog_set_details(dlg: Pointer; details: PChar); cdecl; export;
+begin
+  if Assigned(dlg) and (TObject(dlg) is TFtMessageDialog) then
+  begin
+    if Assigned(details) then
+      TFtMessageDialog(dlg).Details := string(details)
+    else
+      TFtMessageDialog(dlg).Details := '';
+  end;
+end;
+
+procedure ft_message_dialog_set_verification_text(dlg: Pointer; text: PChar); cdecl; export;
+begin
+  if Assigned(dlg) and (TObject(dlg) is TFtMessageDialog) then
+  begin
+    if Assigned(text) then
+      TFtMessageDialog(dlg).VerificationText := string(text)
+    else
+      TFtMessageDialog(dlg).VerificationText := '';
+  end;
+end;
+
+procedure ft_message_dialog_set_verification_checked(dlg: Pointer; checked: cint32); cdecl; export;
+begin
+  if Assigned(dlg) and (TObject(dlg) is TFtMessageDialog) then
+    TFtMessageDialog(dlg).VerificationChecked := (checked <> 0);
+end;
+
+function ft_message_dialog_get_verification_checked(dlg: Pointer): cint32; cdecl; export;
+begin
+  if Assigned(dlg) and (TObject(dlg) is TFtMessageDialog) and TFtMessageDialog(dlg).VerificationChecked then
+    Result := 1
+  else
+    Result := 0;
+end;
+
+procedure ft_message_dialog_set_custom_icon_svg(dlg: Pointer; svg: PChar); cdecl; export;
+begin
+  if Assigned(dlg) and (TObject(dlg) is TFtMessageDialog) then
+  begin
+    if Assigned(svg) then
+      TFtMessageDialog(dlg).CustomIconSvg := string(svg)
+    else
+      TFtMessageDialog(dlg).CustomIconSvg := '';
+  end;
+end;
+
+procedure ft_message_dialog_add_button(dlg: Pointer; caption: PChar;
+  modal_result, is_default, is_destructive: cint32); cdecl; export;
+var
+  cap: string;
+begin
+  if Assigned(dlg) and (TObject(dlg) is TFtMessageDialog) then
+  begin
+    if Assigned(caption) then cap := string(caption) else cap := '';
+    TFtMessageDialog(dlg).AddButton(cap, modal_result, (is_default <> 0), (is_destructive <> 0));
+  end;
+end;
+
+procedure ft_message_dialog_clear_buttons(dlg: Pointer); cdecl; export;
+begin
+  if Assigned(dlg) and (TObject(dlg) is TFtMessageDialog) then
+    TFtMessageDialog(dlg).ClearButtons();
+end;
+
+function ft_message_dialog_show_modal(dlg: Pointer): cint32; cdecl; export;
+begin
+  Result := mrCancel;
+  if Assigned(dlg) and (TObject(dlg) is TFtMessageDialog) then
+  begin
+    try
+      Result := TFtMessageDialog(dlg).ShowModal();
+    except
+      Result := mrCancel;
+    end;
+  end;
+end;
+
+procedure ft_message_dialog_destroy(dlg: Pointer); cdecl; export;
+begin
+  if Assigned(dlg) and (TObject(dlg) is TFtMessageDialog) then
+    TFtMessageDialog(dlg).Free();
+end;
+
+function ft_show_message(message, title: PChar): cint32; cdecl; export;
+var
+  m, t: string;
+begin
+  if Assigned(message) then m := string(message) else m := '';
+  if Assigned(title) then t := string(title) else t := '';
+  Result := FtShowMessage(m, t);
+end;
+
+function ft_show_info(title, instruction, message: PChar): cint32; cdecl; export;
+var
+  t, ins, m: string;
+begin
+  if Assigned(title) then t := string(title) else t := '';
+  if Assigned(instruction) then ins := string(instruction) else ins := '';
+  if Assigned(message) then m := string(message) else m := '';
+  Result := FtShowInfo(t, ins, m);
+end;
+
+function ft_show_warning(title, instruction, message: PChar): cint32; cdecl; export;
+var
+  t, ins, m: string;
+begin
+  if Assigned(title) then t := string(title) else t := '';
+  if Assigned(instruction) then ins := string(instruction) else ins := '';
+  if Assigned(message) then m := string(message) else m := '';
+  Result := FtShowWarning(t, ins, m);
+end;
+
+function ft_show_error(title, instruction, message, details: PChar): cint32; cdecl; export;
+var
+  t, ins, m, d: string;
+begin
+  if Assigned(title) then t := string(title) else t := '';
+  if Assigned(instruction) then ins := string(instruction) else ins := '';
+  if Assigned(message) then m := string(message) else m := '';
+  if Assigned(details) then d := string(details) else d := '';
+  Result := FtShowError(t, ins, m, d);
+end;
+
+function ft_confirm(title, instruction, message: PChar): cint32; cdecl; export;
+var
+  t, ins, m: string;
+begin
+  if Assigned(title) then t := string(title) else t := '';
+  if Assigned(instruction) then ins := string(instruction) else ins := '';
+  if Assigned(message) then m := string(message) else m := '';
+  if FtConfirm(t, ins, m) then
+    Result := 1
+  else
+    Result := 0;
+end;
+
+function ft_confirm_with_verification(title, instruction, message, verification_text: PChar;
+  out_verified: Pcint32): cint32; cdecl; export;
+var
+  t, ins, m, v: string;
+  checked: Boolean;
+begin
+  if Assigned(title) then t := string(title) else t := '';
+  if Assigned(instruction) then ins := string(instruction) else ins := '';
+  if Assigned(message) then m := string(message) else m := '';
+  if Assigned(verification_text) then v := string(verification_text) else v := '';
+
+  checked := False;
+  if Assigned(out_verified) and (out_verified^ <> 0) then
+    checked := True;
+
+  if FtConfirmWithVerification(t, ins, m, v, checked) then
+    Result := 1
+  else
+    Result := 0;
+
+  if Assigned(out_verified) then
+  begin
+    if checked then
+      out_verified^ := 1
+    else
+      out_verified^ := 0;
+  end;
+end;
+
 { ──────────────────────── Icons & Icon Theming ────────────────────────── }
 
 function ft_icon_get_svg(name: PChar; dark_mode: cint32): PChar; cdecl; export;
@@ -6183,7 +6367,25 @@ exports
   ft_widget_get_grid_col,
   ft_widget_get_grid_row,
   ft_widget_get_grid_col_span,
-  ft_widget_get_grid_row_span;
+  ft_widget_get_grid_row_span,
+
+  // Message Dialogs & Alerts
+  ft_message_dialog_create,
+  ft_message_dialog_set_details,
+  ft_message_dialog_set_verification_text,
+  ft_message_dialog_set_verification_checked,
+  ft_message_dialog_get_verification_checked,
+  ft_message_dialog_set_custom_icon_svg,
+  ft_message_dialog_add_button,
+  ft_message_dialog_clear_buttons,
+  ft_message_dialog_show_modal,
+  ft_message_dialog_destroy,
+  ft_show_message,
+  ft_show_info,
+  ft_show_warning,
+  ft_show_error,
+  ft_confirm,
+  ft_confirm_with_verification;
 
 begin
 end.

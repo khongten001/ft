@@ -25,6 +25,10 @@ const
   mrCancel = 2;
   mrYes = 3;
   mrNo = 4;
+  mrAbort = 5;
+  mrRetry = 6;
+  mrIgnore = 7;
+  mrClose = 8;
 
 type
   TFtWindowResizeEvent = procedure(Sender: TObject; NewWidth, NewHeight: Integer) of object;

@@ -12,9 +12,20 @@ uses
   Ft.Widget.Tabs, Ft.Widget.Splitters, Ft.Widget.TreeViews, Ft.Widget.Tables,
   Ft.Widget.Texts, Ft.Widget.Buttons, Ft.Widget.Entries, Ft.Widget.TextAreas,
   Ft.Widget.Switches, Ft.Widget.Selectors, Ft.Widget.PathBars, Ft.Widget.UrlEntries, Ft.Window,
-  Ft.Backend.X11, Ft.Backend.EGL, Floria.EGL, Ft.Theme, Floria.Font, Ft.Icons, Ft.Widget.Layouts;
+  Ft.Backend.X11, Ft.Backend.EGL, Floria.EGL, Ft.Theme, Floria.Font, Ft.Icons, Ft.Widget.Layouts,
+  Ft.Dialogs;
 
 type
+  TFtDialogsTest = class(TTestCase)
+  published
+    procedure TestMessageDialogProperties();
+    procedure TestMessageDialogVerificationCheckbox();
+    procedure TestMessageDialogCustomButtons();
+    procedure TestMessageDialogDetails();
+    procedure TestCheckBoxPreferredSizes();
+    procedure TestWidgetTag();
+  end;
+
   TFtLayoutsTest = class(TTestCase)
   published
     procedure TestHBoxFixedWithGap();
@@ -3268,12 +3279,122 @@ begin
   end;
 end;
 
+{ ───────────────────────── TFtDialogsTest ───────────────────────────────── }
+
+procedure TFtDialogsTest.TestMessageDialogProperties();
+var
+  dlg: TFtMessageDialog;
+begin
+  dlg := TFtMessageDialog.Create('Security Notice', 'Enable 2FA?',
+    'Two-factor authentication adds an extra layer of protection.',
+    fmdQuestion, fmbYesNo);
+  try
+    AssertEquals('Title', 'Security Notice', dlg.Title);
+    AssertEquals('Instruction', 'Enable 2FA?', dlg.Instruction);
+    AssertEquals('Message', 'Two-factor authentication adds an extra layer of protection.', dlg.Message);
+    AssertEquals('DialogType', Ord(fmdQuestion), Ord(dlg.DialogType));
+    AssertEquals('ButtonsType', Ord(fmbYesNo), Ord(dlg.ButtonsType));
+    AssertEquals('DefaultResult', mrYes, dlg.DefaultResult);
+    AssertEquals('CancelResult', mrNo, dlg.CancelResult);
+    AssertEquals('VerificationText initially empty', '', dlg.VerificationText);
+    AssertFalse('VerificationChecked initially false', dlg.VerificationChecked);
+    AssertEquals('Details initially empty', '', dlg.Details);
+  finally
+    dlg.Free();
+  end;
+end;
+
+procedure TFtDialogsTest.TestMessageDialogVerificationCheckbox();
+var
+  dlg: TFtMessageDialog;
+begin
+  dlg := TFtMessageDialog.Create('Confirm Delete', 'Delete project?',
+    'This will remove all associated files.', fmdWarning, fmbOkCancel);
+  try
+    dlg.VerificationText := 'Do not ask me again';
+    AssertEquals('VerificationText set', 'Do not ask me again', dlg.VerificationText);
+
+    dlg.VerificationChecked := True;
+    AssertTrue('VerificationChecked set true', dlg.VerificationChecked);
+
+    dlg.VerificationChecked := False;
+    AssertFalse('VerificationChecked set false', dlg.VerificationChecked);
+  finally
+    dlg.Free();
+  end;
+end;
+
+procedure TFtDialogsTest.TestMessageDialogCustomButtons();
+var
+  dlg: TFtMessageDialog;
+begin
+  dlg := TFtMessageDialog.Create('Save Changes', 'Save modifications?',
+    'You have unsaved changes in your document.', fmdQuestion, fmbCustom);
+  try
+    dlg.ClearButtons();
+    dlg.AddButton('Discard', mrNo, False, True);
+    dlg.AddButton('Cancel', mrCancel, False, False);
+    dlg.AddButton('Save', mrYes, True, False);
+
+    AssertEquals('DefaultResult set by IsDefault button', mrYes, dlg.DefaultResult);
+  finally
+    dlg.Free();
+  end;
+end;
+
+procedure TFtDialogsTest.TestMessageDialogDetails();
+var
+  dlg: TFtMessageDialog;
+begin
+  dlg := TFtMessageDialog.Create('Crash Report', 'An unhandled exception occurred.',
+    'Click details for error diagnostic information.', fmdError, fmbOk);
+  try
+    dlg.Details := 'EAccessViolation at $00451299 in libft.so' + LineEnding + 'Stack trace: frame 0 -> frame 1';
+    AssertTrue('Details not empty', dlg.Details <> '');
+    AssertEquals('DialogType', Ord(fmdError), Ord(dlg.DialogType));
+  finally
+    dlg.Free();
+  end;
+end;
+
+procedure TFtDialogsTest.TestCheckBoxPreferredSizes();
+var
+  cb: TFtCheckBox;
+begin
+  cb := TFtCheckBox.Create(nil);
+  try
+    AssertEquals('Empty caption preferred width', 26, cb.GetPreferredWidth());
+    AssertEquals('Preferred height', 24, cb.GetPreferredHeight());
+
+    cb.Caption := 'Do not show again';
+    AssertTrue('Caption preferred width > 26', cb.GetPreferredWidth() > 26);
+  finally
+    cb.Free();
+  end;
+end;
+
+procedure TFtDialogsTest.TestWidgetTag();
+var
+  b: TFtButton;
+begin
+  b := TFtButton.Create(nil);
+  try
+    b.Tag := 42;
+    AssertEquals('Widget Tag', 42, b.Tag);
+    b.Tag := mrOk;
+    AssertEquals('Widget Tag mrOk', mrOk, b.Tag);
+  finally
+    b.Free();
+  end;
+end;
+
 var
   Application: TTestRunner;
 
 begin
   Application := TTestRunner.Create(nil);
   try
+    RegisterTest(TFtDialogsTest);
     RegisterTest(TFtLayoutsTest);
     RegisterTest(TFtIconsTest);
     RegisterTest(TFtCssTest);

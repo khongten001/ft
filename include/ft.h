@@ -987,6 +987,66 @@ const char* ft_dialog_open_file(const char* title, const char* default_dir, cons
 const char* ft_dialog_save_file(const char* title, const char* default_dir, const char* default_name, const char* filter);
 const char* ft_dialog_select_folder(const char* title, const char* default_dir);
 
+/* ─── Message Dialogs & Alerts ─────────────────────────────────────────── */
+
+/* Modal result return codes */
+enum {
+  FT_MODAL_NONE    = 0,
+  FT_MODAL_OK      = 1,
+  FT_MODAL_CANCEL  = 2,
+  FT_MODAL_YES     = 3,
+  FT_MODAL_NO      = 4,
+  FT_MODAL_ABORT   = 5,
+  FT_MODAL_RETRY   = 6,
+  FT_MODAL_IGNORE  = 7,
+  FT_MODAL_CLOSE   = 8
+};
+
+/* Message Dialog severity / type */
+enum {
+  FT_MSG_DIALOG_CUSTOM      = 0,
+  FT_MSG_DIALOG_INFO        = 1,
+  FT_MSG_DIALOG_WARNING     = 2,
+  FT_MSG_DIALOG_ERROR       = 3,
+  FT_MSG_DIALOG_QUESTION    = 4,
+  FT_MSG_DIALOG_SUCCESS     = 5
+};
+
+/* Message Dialog standard button configurations */
+enum {
+  FT_MSG_BUTTONS_OK            = 0,
+  FT_MSG_BUTTONS_OK_CANCEL     = 1,
+  FT_MSG_BUTTONS_YES_NO        = 2,
+  FT_MSG_BUTTONS_YES_NO_CANCEL = 3,
+  FT_MSG_BUTTONS_RETRY_CANCEL  = 4,
+  FT_MSG_BUTTONS_CUSTOM        = 5
+};
+
+typedef void* FtMessageDialog;
+
+/* Handle-based object API */
+FtMessageDialog ft_message_dialog_create(const char* title, const char* instruction, const char* message,
+                                         int32_t dialog_type, int32_t buttons_type);
+void            ft_message_dialog_set_details(FtMessageDialog dlg, const char* details);
+void            ft_message_dialog_set_verification_text(FtMessageDialog dlg, const char* text);
+void            ft_message_dialog_set_verification_checked(FtMessageDialog dlg, int32_t checked);
+int32_t         ft_message_dialog_get_verification_checked(FtMessageDialog dlg);
+void            ft_message_dialog_set_custom_icon_svg(FtMessageDialog dlg, const char* svg);
+void            ft_message_dialog_add_button(FtMessageDialog dlg, const char* caption, int32_t modal_result,
+                                             int32_t is_default, int32_t is_destructive);
+void            ft_message_dialog_clear_buttons(FtMessageDialog dlg);
+int32_t         ft_message_dialog_show_modal(FtMessageDialog dlg);
+void            ft_message_dialog_destroy(FtMessageDialog dlg);
+
+/* One-shot convenience functions */
+int32_t ft_show_message(const char* message, const char* title);
+int32_t ft_show_info(const char* title, const char* instruction, const char* message);
+int32_t ft_show_warning(const char* title, const char* instruction, const char* message);
+int32_t ft_show_error(const char* title, const char* instruction, const char* message, const char* details);
+int32_t ft_confirm(const char* title, const char* instruction, const char* message);
+int32_t ft_confirm_with_verification(const char* title, const char* instruction, const char* message,
+                                     const char* verification_text, int32_t* out_verified);
+
 /* ─── Icons & Icon Theming ─────────────────────────────────────────────── */
 
 /* Retrieve SVG markup by name. If dark_mode is non-zero, adapts monochrome strokes.

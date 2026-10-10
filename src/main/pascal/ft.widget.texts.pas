@@ -316,12 +316,24 @@ end;
 function TFtText.GetPreferredHeight(): Integer;
 var
   fnt: TFtFont;
+  lines: TFtTextLineArray;
+  lineHeight: Double;
 begin
   if FPreferredHeight > 0 then
     Exit(FPreferredHeight);
   fnt := GetFont();
+  if not Assigned(fnt) then fnt := FtGetSystemFont();
   if Assigned(fnt) then
-    Result := Round(fnt.Size * 1.5)
+  begin
+    lineHeight := fnt.Size * 1.35;
+    if FWordWrap and (Width > 20) and (FText <> '') then
+    begin
+      lines := BuildLines(fnt, Width - 4.0);
+      if Length(lines) > 0 then
+        Exit(Round(Length(lines) * lineHeight) + 6);
+    end;
+    Result := Round(fnt.Size * 1.5);
+  end
   else
     Result := 20;
 end;

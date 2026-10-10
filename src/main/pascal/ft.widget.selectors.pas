@@ -46,6 +46,8 @@ type
     function GetElementType(): string; override;
     function GetStatePseudoClass(): string; override;
     function GetEffectiveHint(): string; override;
+    function GetPreferredWidth(): Integer; override;
+    function GetPreferredHeight(): Integer; override;
 
     property Checked: Boolean read FChecked write SetChecked;
     property Caption: string read FCaption write SetCaption;
@@ -261,6 +263,27 @@ begin
     Result := FCaption
   else
     Result := '';
+end;
+
+function TFtCheckBox.GetPreferredWidth(): Integer;
+var
+  f: TFtFont;
+begin
+  if FPreferredWidth > 0 then
+    Exit(FPreferredWidth);
+  f := GetFont();
+  if not Assigned(f) then f := FtGetSystemFont();
+  if Assigned(f) and (FCaption <> '') then
+    Result := 26 + Round(f.GetTextWidth(FCaption)) + 8
+  else
+    Result := 26;
+end;
+
+function TFtCheckBox.GetPreferredHeight(): Integer;
+begin
+  if FPreferredHeight > 0 then
+    Exit(FPreferredHeight);
+  Result := 24;
 end;
 
 procedure TFtCheckBox.MouseEnter();

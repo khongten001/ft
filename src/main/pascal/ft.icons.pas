@@ -216,6 +216,40 @@ const
     '<path d="M 13.5 2.5 L 13.5 6.5 L 9.5 6.5" fill="none" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
     '</svg>';
 
+  { Dialog Icons (48x48) }
+  FT_ICON_DIALOG_INFO =
+    '<svg viewBox="0 0 48 48" width="48" height="48">' +
+    '<circle cx="24" cy="24" r="21" fill="#0284c7"/>' +
+    '<circle cx="24" cy="14" r="2.8" fill="#ffffff"/>' +
+    '<path d="M 21.5 21 L 24 21 L 24 34 M 21.5 34 L 26.5 34" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' +
+    '</svg>';
+
+  FT_ICON_DIALOG_WARNING =
+    '<svg viewBox="0 0 48 48" width="48" height="48">' +
+    '<path d="M 24 5 L 43 39 C 43.8 40.5 42.8 42 41 42 L 7 42 C 5.2 42 4.2 40.5 5 39 Z" fill="#f59e0b"/>' +
+    '<path d="M 24 18 L 24 28" stroke="#ffffff" stroke-width="3.6" stroke-linecap="round"/>' +
+    '<circle cx="24" cy="34" r="2.2" fill="#ffffff"/>' +
+    '</svg>';
+
+  FT_ICON_DIALOG_ERROR =
+    '<svg viewBox="0 0 48 48" width="48" height="48">' +
+    '<circle cx="24" cy="24" r="21" fill="#ef4444"/>' +
+    '<path d="M 16 16 L 32 32 M 32 16 L 16 32" stroke="#ffffff" stroke-width="3.6" stroke-linecap="round"/>' +
+    '</svg>';
+
+  FT_ICON_DIALOG_QUESTION =
+    '<svg viewBox="0 0 48 48" width="48" height="48">' +
+    '<circle cx="24" cy="24" r="21" fill="#6366f1"/>' +
+    '<path d="M 18 19 C 18 15.5 20.5 13 24 13 C 27.5 13 30 15.5 30 19 C 30 22 28 23.5 26 25 C 24.5 26.2 24 27.5 24 29" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" fill="none"/>' +
+    '<circle cx="24" cy="34" r="2.2" fill="#ffffff"/>' +
+    '</svg>';
+
+  FT_ICON_DIALOG_SUCCESS =
+    '<svg viewBox="0 0 48 48" width="48" height="48">' +
+    '<circle cx="24" cy="24" r="21" fill="#10b981"/>' +
+    '<path d="M 14 25 L 21 32 L 34 17" stroke="#ffffff" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' +
+    '</svg>';
+
 { ── Extensible Icon Manager & Theming System ── }
 
 type
@@ -458,6 +492,13 @@ begin
   RegisterIcon('close', FT_ICON_CLOSE);
   RegisterIcon('search', FT_ICON_SEARCH);
   RegisterIcon('refresh', FT_ICON_REFRESH);
+
+  { Dialog Severity Icons }
+  RegisterIcon('dialog-info', FT_ICON_DIALOG_INFO);
+  RegisterIcon('dialog-warning', FT_ICON_DIALOG_WARNING);
+  RegisterIcon('dialog-error', FT_ICON_DIALOG_ERROR);
+  RegisterIcon('dialog-question', FT_ICON_DIALOG_QUESTION);
+  RegisterIcon('dialog-success', FT_ICON_DIALOG_SUCCESS);
 end;
 
 { Global Accessors }

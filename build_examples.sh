@@ -40,6 +40,7 @@ eval gcc $CFLAGS examples/c/egl_gpu_showcase.c $LDFLAGS -o target/example_c_egl_
 eval gcc $CFLAGS examples/c/gpu_vector_stress_test.c $LDFLAGS -lm -o target/example_c_gpu_vector_stress_test
 eval gcc $CFLAGS examples/c/flex_layout.c $LDFLAGS -o target/example_c_flex_layout
 eval gcc $CFLAGS examples/c/form_grid_and_splitter.c $LDFLAGS -o target/example_c_form_grid_and_splitter
+eval gcc $CFLAGS examples/c/message_dialog.c $LDFLAGS -o target/example_c_message_dialog
 
 echo "[INFO] Successfully built all C examples in target/:"
 ls -lh target/example_c_*
