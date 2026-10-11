@@ -148,12 +148,11 @@ var
   relX, relY: Integer;
   deltaX, deltaY: Integer;
 begin
-  inherited MouseDown(AX, AY, AButton);
-
   relX := AX - X;
   relY := AY - Y;
 
   // Handle standard X11 scroll wheel buttons (4=Up, 5=Down, 6=Left, 7=Right)
+  // Consume the wheel event here so it does not scroll ancestor containers
   if AButton in [4, 5, 6, 7] then
   begin
     if Assigned(FOnMouseWheel) then
@@ -170,6 +169,8 @@ begin
     end;
     Exit;
   end;
+
+  inherited MouseDown(AX, AY, AButton);
 
   if FFocusable then
     SetFocus();

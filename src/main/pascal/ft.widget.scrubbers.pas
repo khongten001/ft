@@ -34,6 +34,8 @@ type
     FSuffix: string;
     FPrefix: string;
     FUserData: Pointer;
+    FFontLabel: TFtFont;
+    FFontValue: TFtFont;
 
     { Interaction state }
     FIsScrubbing: Boolean;
@@ -107,6 +109,8 @@ begin
   FEditText := '';
   FCaretPos := 0;
   FOnChange := nil;
+  FFontLabel := FtFontManager().GetFont('sans-serif,9,bold');
+  FFontValue := FtFontManager().GetFont('sans-serif,9');
 end;
 
 destructor TFtNumberScrubber.Destroy();
@@ -270,8 +274,8 @@ begin
     // 1px Border outline
     Canvas.DrawRoundedRectOutline(X, Y, Width, Height, radius, 1.0, bdR, bdG, bdB, 1.0);
 
-    fntLbl := FtFontManager().GetFont('sans-serif,9,bold');
-    fntVal := FtFontManager().GetFont('sans-serif,9');
+    fntLbl := FFontLabel;
+    fntVal := FFontValue;
 
     // 1. Draw Label text on the left
     labelW := 0.0;

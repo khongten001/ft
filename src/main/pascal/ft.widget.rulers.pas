@@ -38,6 +38,7 @@ type
     FDPI: Double;           { Display / document DPI (default 96.0) }
     FThickness: Integer;    { Breadth of the ruler (height if H, width if V; default 20) }
     FUserData: Pointer;
+    FFont: TFtFont;
 
     FIsDraggingGuide: Boolean;
     FOnCreateGuide: TFtRulerGuideEvent;
@@ -86,6 +87,7 @@ begin
   FUserData := nil;
   FIsDraggingGuide := False;
   FOnCreateGuide := nil;
+  FFont := FtFontManager().GetFont('sans-serif,8');
 
   if FOrientation = ftroHorizontal then
   begin
@@ -252,7 +254,7 @@ begin
       w := startWld; startWld := endWld; endWld := w;
     end;
 
-    fnt := FtFontManager().GetFont('sans-serif,8');
+    fnt := FFont;
 
     // 5. Render Ticks & Numerical Labels
     w := Floor(startWld / minorStep) * minorStep;
