@@ -78,13 +78,15 @@ static void on_paint_canvas(FtWidget widget, FtCanvas canvas, void* user_data) {
 
     int32_t view_w = ft_widget_get_width(widget);
     int32_t view_h = ft_widget_get_height(widget);
+    int32_t area_x = ft_widget_get_x(widget);
+    int32_t area_y = ft_widget_get_y(widget);
     int32_t is_dark = ft_theme_get_dark_mode();
 
     /* 1. Paint Infinite Pasteboard Background */
     if (is_dark) {
-        ft_canvas_draw_rect(canvas, 0, 0, view_w, view_h, 0.11, 0.13, 0.17, 1.0); // slate-900
+        ft_canvas_draw_rect(canvas, area_x, area_y, view_w, view_h, 0.11, 0.13, 0.17, 1.0); // slate-900
     } else {
-        ft_canvas_draw_rect(canvas, 0, 0, view_w, view_h, 0.90, 0.92, 0.94, 1.0); // slate-200
+        ft_canvas_draw_rect(canvas, area_x, area_y, view_w, view_h, 0.90, 0.92, 0.94, 1.0); // slate-200
     }
 
     double zoom = ft_camera2d_get_zoom(s_camera);
@@ -93,7 +95,12 @@ static void on_paint_canvas(FtWidget widget, FtCanvas canvas, void* user_data) {
     double top_left_wld_x = 0.0, top_left_wld_y = 0.0;
     double bot_right_wld_x = 0.0, bot_right_wld_y = 0.0;
     ft_camera2d_screen_to_world(s_camera, 0.0, 0.0, &top_left_wld_x, &top_left_wld_y);
-    ft_camera2d_screen_to_world(s_camera, view_w, view_h, &bot_right_wld_x, &bot_right_wld_y);
+    ft_camera2d_screen_to_world(s_camera, (double)view_w, (double)view_h, &bot_right_wld_x, &bot_right_wld_y);
+
+    double min_wld_x = top_left_wld_x < bot_right_wld_x ? top_left_wld_x : bot_right_wld_x;
+    double max_wld_x = top_left_wld_x > bot_right_wld_x ? top_left_wld_x : bot_right_wld_x;
+    double min_wld_y = top_left_wld_y < bot_right_wld_y ? top_left_wld_y : bot_right_wld_y;
+    double max_wld_y = top_left_wld_y > bot_right_wld_y ? top_left_wld_y : bot_right_wld_y;
 
     double grid_step = 50.0;
     if (zoom < 0.4) grid_step = 200.0;
@@ -105,22 +112,21 @@ static void on_paint_canvas(FtWidget widget, FtCanvas canvas, void* user_data) {
     double grid_b = is_dark ? 0.30 : 0.86;
     double grid_alpha = 0.4;
 
-    double start_gx = floor(top_left_wld_x / grid_step) * grid_step;
-    double end_gx = ceil(bot_right_wld_x / grid_step) * grid_step;
+    /* Expand bounds by 1 step so grid lines seamlessly span beyond visible edges */
+    double start_gx = floor(min_wld_x / grid_step) * grid_step - grid_step;
+    double end_gx = ceil(max_wld_x / grid_step) * grid_step + grid_step;
     for (double gx = start_gx; gx <= end_gx; gx += grid_step) {
-        double sx = 0.0, sy1 = 0.0, sy2 = 0.0;
-        ft_camera2d_world_to_screen(s_camera, gx, top_left_wld_y, &sx, &sy1);
-        ft_camera2d_world_to_screen(s_camera, gx, bot_right_wld_y, &sx, &sy2);
-        ft_canvas_draw_line(canvas, sx, 0, sx, view_h, 1.0, grid_r, grid_g, grid_b, grid_alpha);
+        double sx = 0.0, sy = 0.0;
+        ft_camera2d_world_to_screen(s_camera, gx, 0.0, &sx, &sy);
+        ft_canvas_draw_line(canvas, area_x + sx, area_y, area_x + sx, area_y + view_h, 1.0, grid_r, grid_g, grid_b, grid_alpha);
     }
 
-    double start_gy = floor(top_left_wld_y / grid_step) * grid_step;
-    double end_gy = ceil(bot_right_wld_y / grid_step) * grid_step;
+    double start_gy = floor(min_wld_y / grid_step) * grid_step - grid_step;
+    double end_gy = ceil(max_wld_y / grid_step) * grid_step + grid_step;
     for (double gy = start_gy; gy <= end_gy; gy += grid_step) {
-        double sy = 0.0, sx1 = 0.0, sx2 = 0.0;
-        ft_camera2d_world_to_screen(s_camera, top_left_wld_x, gy, &sx1, &sy);
-        ft_camera2d_world_to_screen(s_camera, bot_right_wld_x, gy, &sx2, &sy);
-        ft_canvas_draw_line(canvas, 0, sy, view_w, sy, 1.0, grid_r, grid_g, grid_b, grid_alpha);
+        double sx = 0.0, sy = 0.0;
+        ft_camera2d_world_to_screen(s_camera, 0.0, gy, &sx, &sy);
+        ft_canvas_draw_line(canvas, area_x, area_y + sy, area_x + view_w, area_y + sy, 1.0, grid_r, grid_g, grid_b, grid_alpha);
     }
 
     /* 3. Paint Document Sheet (White Artboard Page with Drop Shadow) */
@@ -130,19 +136,19 @@ static void on_paint_canvas(FtWidget widget, FtCanvas canvas, void* user_data) {
     double doc_sh = s_doc_h * zoom;
 
     /* Drop shadow under document */
-    ft_canvas_draw_rounded_rect(canvas, doc_sx + 4.0, doc_sy + 4.0, doc_sw, doc_sh, 4.0,
+    ft_canvas_draw_rounded_rect(canvas, area_x + doc_sx + 4.0, area_y + doc_sy + 4.0, doc_sw, doc_sh, 4.0,
                                 0.0, 0.0, 0.0, is_dark ? 0.35 : 0.12);
-    ft_canvas_draw_rounded_rect(canvas, doc_sx + 2.0, doc_sy + 2.0, doc_sw, doc_sh, 2.0,
+    ft_canvas_draw_rounded_rect(canvas, area_x + doc_sx + 2.0, area_y + doc_sy + 2.0, doc_sw, doc_sh, 2.0,
                                 0.0, 0.0, 0.0, is_dark ? 0.20 : 0.08);
 
     /* Artboard paper page */
     if (is_dark) {
-        ft_canvas_draw_rect(canvas, doc_sx, doc_sy, doc_sw, doc_sh, 0.18, 0.21, 0.27, 1.0); // slate-800 paper
+        ft_canvas_draw_rect(canvas, area_x + doc_sx, area_y + doc_sy, doc_sw, doc_sh, 0.18, 0.21, 0.27, 1.0); // slate-800 paper
     } else {
-        ft_canvas_draw_rect(canvas, doc_sx, doc_sy, doc_sw, doc_sh, 1.0, 1.0, 1.0, 1.0); // crisp white paper
+        ft_canvas_draw_rect(canvas, area_x + doc_sx, area_y + doc_sy, doc_sw, doc_sh, 1.0, 1.0, 1.0, 1.0); // crisp white paper
     }
     /* Document border line */
-    ft_canvas_draw_rounded_rect_outline(canvas, doc_sx, doc_sy, doc_sw, doc_sh, 0.0, 1.0,
+    ft_canvas_draw_rounded_rect_outline(canvas, area_x + doc_sx, area_y + doc_sy, doc_sw, doc_sh, 0.0, 1.0,
                                         is_dark ? 0.35 : 0.75,
                                         is_dark ? 0.40 : 0.78,
                                         is_dark ? 0.48 : 0.82, 1.0);
@@ -150,14 +156,14 @@ static void on_paint_canvas(FtWidget widget, FtCanvas canvas, void* user_data) {
     /* 4. Paint Artboard Content: Header, Vector Shapes, Interactive Shape */
     double header_sx = 0.0, header_sy = 0.0;
     ft_camera2d_world_to_screen(s_camera, s_doc_x + 30.0, s_doc_y + 35.0, &header_sx, &header_sy);
-    ft_canvas_draw_text(canvas, header_sx, header_sy, "Floria Vector Document (Artboard 1)", NULL,
+    ft_canvas_draw_text(canvas, area_x + header_sx, area_y + header_sy, "Floria Vector Document (Artboard 1)", NULL,
                         is_dark ? 0.90 : 0.15, is_dark ? 0.92 : 0.20, is_dark ? 0.96 : 0.25);
 
     /* Static decorative circle */
     double circ_cx = 0.0, circ_cy = 0.0;
     ft_camera2d_world_to_screen(s_camera, s_doc_x + 100.0, s_doc_y + 180.0, &circ_cx, &circ_cy);
-    ft_canvas_draw_circle(canvas, circ_cx, circ_cy, (45.0 + 3.0) * zoom, 1.0, 1.0, 1.0, 0.4);
-    ft_canvas_draw_circle(canvas, circ_cx, circ_cy, 45.0 * zoom, 0.93, 0.27, 0.36, 0.85); // rose-500
+    ft_canvas_draw_circle(canvas, area_x + circ_cx, area_y + circ_cy, (45.0 + 3.0) * zoom, 1.0, 1.0, 1.0, 0.4);
+    ft_canvas_draw_circle(canvas, area_x + circ_cx, area_y + circ_cy, 45.0 * zoom, 0.93, 0.27, 0.36, 0.85); // rose-500
 
     /* Interactive Shape (Controlled by scrubbers!) */
     double shp_sx = 0.0, shp_sy = 0.0;
@@ -166,23 +172,23 @@ static void on_paint_canvas(FtWidget widget, FtCanvas canvas, void* user_data) {
     double shp_sh = s_shape_h * zoom;
 
     /* Fill interactive shape with modern vibrant gradient / accent */
-    ft_canvas_draw_rounded_rect(canvas, shp_sx, shp_sy, shp_sw, shp_sh, 8.0 * zoom,
+    ft_canvas_draw_rounded_rect(canvas, area_x + shp_sx, area_y + shp_sy, shp_sw, shp_sh, 8.0 * zoom,
                                 0.14, 0.45, 0.91, 0.90); // blue-600
     /* Outline & handles */
-    ft_canvas_draw_rounded_rect_outline(canvas, shp_sx, shp_sy, shp_sw, shp_sh, 8.0 * zoom, 2.0,
+    ft_canvas_draw_rounded_rect_outline(canvas, area_x + shp_sx, area_y + shp_sy, shp_sw, shp_sh, 8.0 * zoom, 2.0,
                                         0.38, 0.72, 0.98, 1.0); // sky-400
 
     /* Shape label */
     double lbl_sx = 0.0, lbl_sy = 0.0;
     ft_camera2d_world_to_screen(s_camera, s_shape_x + 16.0, s_shape_y + 24.0, &lbl_sx, &lbl_sy);
-    ft_canvas_draw_text(canvas, lbl_sx, lbl_sy, "Interactive Vector Card", NULL, 1.0, 1.0, 1.0);
+    ft_canvas_draw_text(canvas, area_x + lbl_sx, area_y + lbl_sy, "Interactive Vector Card", NULL, 1.0, 1.0, 1.0);
 
     /* 4 Corner selection gizmo handles */
     double h_rad = 4.0;
-    ft_canvas_draw_rect(canvas, shp_sx - h_rad, shp_sy - h_rad, h_rad * 2, h_rad * 2, 1.0, 1.0, 1.0, 1.0);
-    ft_canvas_draw_rect(canvas, shp_sx + shp_sw - h_rad, shp_sy - h_rad, h_rad * 2, h_rad * 2, 1.0, 1.0, 1.0, 1.0);
-    ft_canvas_draw_rect(canvas, shp_sx - h_rad, shp_sy + shp_sh - h_rad, h_rad * 2, h_rad * 2, 1.0, 1.0, 1.0, 1.0);
-    ft_canvas_draw_rect(canvas, shp_sx + shp_sw - h_rad, shp_sy + shp_sh - h_rad, h_rad * 2, h_rad * 2, 1.0, 1.0, 1.0, 1.0);
+    ft_canvas_draw_rect(canvas, area_x + shp_sx - h_rad, area_y + shp_sy - h_rad, h_rad * 2, h_rad * 2, 1.0, 1.0, 1.0, 1.0);
+    ft_canvas_draw_rect(canvas, area_x + shp_sx + shp_sw - h_rad, area_y + shp_sy - h_rad, h_rad * 2, h_rad * 2, 1.0, 1.0, 1.0, 1.0);
+    ft_canvas_draw_rect(canvas, area_x + shp_sx - h_rad, area_y + shp_sy + shp_sh - h_rad, h_rad * 2, h_rad * 2, 1.0, 1.0, 1.0, 1.0);
+    ft_canvas_draw_rect(canvas, area_x + shp_sx + shp_sw - h_rad, area_y + shp_sy + shp_sh - h_rad, h_rad * 2, h_rad * 2, 1.0, 1.0, 1.0, 1.0);
 }
 
 /* ─── Mouse Navigation Callbacks ───────────────────────────────────────── */
