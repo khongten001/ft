@@ -9,6 +9,7 @@ extern "C" {
 
 typedef void* FtWidget;
 typedef void* FtBitmap;
+typedef void* FtCanvas;
 
 /* Callback Types */
 typedef void (*FtClickCallback)(FtWidget widget, void* user_data);
@@ -27,6 +28,17 @@ enum {
 void ft_init(void);
 void ft_main_loop(void);
 void ft_quit(void);
+
+/* Cursor Types */
+typedef enum {
+    FT_CURSOR_DEFAULT   = 0,
+    FT_CURSOR_IBEAM     = 1,
+    FT_CURSOR_SIZE_H    = 2,
+    FT_CURSOR_SIZE_V    = 3,
+    FT_CURSOR_HAND      = 4,
+    FT_CURSOR_CROSSHAIR = 5,
+    FT_CURSOR_MOVE      = 6
+} FtCursorType;
 
 /* Window Types */
 typedef enum {
@@ -1046,6 +1058,91 @@ int32_t ft_show_error(const char* title, const char* instruction, const char* me
 int32_t ft_confirm(const char* title, const char* instruction, const char* message);
 int32_t ft_confirm_with_verification(const char* title, const char* instruction, const char* message,
                                      const char* verification_text, int32_t* out_verified);
+
+/* ─── Drawing Area Widget ─────────────────────────────────────────────── */
+
+typedef void (*FtDrawingPaintCallback)(FtWidget widget, FtCanvas canvas, void* user_data);
+typedef void (*FtDrawingMouseEvent)(FtWidget widget, int32_t x, int32_t y, int32_t button, void* user_data);
+typedef void (*FtDrawingMouseMoveEvent)(FtWidget widget, int32_t x, int32_t y, void* user_data);
+typedef void (*FtDrawingWheelEvent)(FtWidget widget, int32_t x, int32_t y, int32_t delta_x, int32_t delta_y, void* user_data);
+typedef void (*FtDrawingKeyEvent)(FtWidget widget, uint32_t keysym, uint32_t state, void* user_data);
+typedef void (*FtDrawingResizeEvent)(FtWidget widget, int32_t new_width, int32_t new_height, void* user_data);
+
+FtWidget ft_drawingarea_create(FtWidget parent, int32_t x, int32_t y, int32_t w, int32_t h);
+void     ft_drawingarea_set_cursor(FtWidget area, int32_t cursor_type);
+int32_t  ft_drawingarea_get_cursor(FtWidget area);
+void     ft_drawingarea_set_clip_to_bounds(FtWidget area, int32_t clip);
+void     ft_drawingarea_on_paint(FtWidget area, FtDrawingPaintCallback callback, void* user_data);
+void     ft_drawingarea_on_mouse_down(FtWidget area, FtDrawingMouseEvent callback, void* user_data);
+void     ft_drawingarea_on_mouse_up(FtWidget area, FtDrawingMouseEvent callback, void* user_data);
+void     ft_drawingarea_on_mouse_move(FtWidget area, FtDrawingMouseMoveEvent callback, void* user_data);
+void     ft_drawingarea_on_mouse_wheel(FtWidget area, FtDrawingWheelEvent callback, void* user_data);
+void     ft_drawingarea_on_mouse_enter(FtWidget area, FtDrawingMouseMoveEvent callback, void* user_data);
+void     ft_drawingarea_on_mouse_leave(FtWidget area, FtDrawingMouseMoveEvent callback, void* user_data);
+void     ft_drawingarea_on_key_down(FtWidget area, FtDrawingKeyEvent callback, void* user_data);
+void     ft_drawingarea_on_key_up(FtWidget area, FtDrawingKeyEvent callback, void* user_data);
+void     ft_drawingarea_on_resize(FtWidget area, FtDrawingResizeEvent callback, void* user_data);
+
+/* ─── Measurement Ruler Widget ─────────────────────────────────────────── */
+
+enum {
+    FT_RULER_HORIZONTAL = 0,
+    FT_RULER_VERTICAL   = 1
+};
+
+enum {
+    FT_RULER_UNIT_PIXELS      = 0,
+    FT_RULER_UNIT_POINTS      = 1,
+    FT_RULER_UNIT_MILLIMETERS = 2,
+    FT_RULER_UNIT_CENTIMETERS = 3,
+    FT_RULER_UNIT_INCHES      = 4
+};
+
+typedef void (*FtRulerGuideEvent)(FtWidget widget, double world_pos, void* user_data);
+
+FtWidget ft_ruler_create(FtWidget parent, int32_t orientation, int32_t x, int32_t y, int32_t w, int32_t h);
+void     ft_ruler_set_origin_and_scale(FtWidget ruler, double origin, double scale);
+void     ft_ruler_set_pointer_position(FtWidget ruler, double pos);
+void     ft_ruler_set_unit(FtWidget ruler, int32_t unit_kind);
+int32_t  ft_ruler_get_unit(FtWidget ruler);
+void     ft_ruler_set_show_pointer(FtWidget ruler, int32_t show);
+void     ft_ruler_set_thickness(FtWidget ruler, int32_t thickness);
+void     ft_ruler_on_create_guide(FtWidget ruler, FtRulerGuideEvent callback, void* user_data);
+
+/* ─── Numeric Scrubber Widget ──────────────────────────────────────────── */
+
+typedef void (*FtScrubberChangeEvent)(FtWidget widget, double new_value, void* user_data);
+
+FtWidget ft_numberscrubber_create(FtWidget parent, int32_t x, int32_t y, int32_t w, int32_t h, const char* label_text);
+void     ft_numberscrubber_set_value(FtWidget scrubber, double value);
+double   ft_numberscrubber_get_value(FtWidget scrubber);
+void     ft_numberscrubber_set_range(FtWidget scrubber, double min_val, double max_val);
+void     ft_numberscrubber_set_step(FtWidget scrubber, double step);
+void     ft_numberscrubber_set_decimals(FtWidget scrubber, int32_t decimals);
+void     ft_numberscrubber_set_suffix(FtWidget scrubber, const char* suffix);
+void     ft_numberscrubber_set_prefix(FtWidget scrubber, const char* prefix);
+void     ft_numberscrubber_on_change(FtWidget scrubber, FtScrubberChangeEvent callback, void* user_data);
+
+/* ─── 2D Camera / Viewport Transform Engine ───────────────────────────── */
+
+typedef void* FtCamera2D;
+
+FtCamera2D ft_camera2d_create(double min_zoom, double max_zoom);
+void       ft_camera2d_destroy(FtCamera2D camera);
+void       ft_camera2d_reset(FtCamera2D camera);
+void       ft_camera2d_world_to_screen(FtCamera2D camera, double wx, double wy, double* out_sx, double* out_sy);
+void       ft_camera2d_screen_to_world(FtCamera2D camera, double sx, double sy, double* out_wx, double* out_wy);
+void       ft_camera2d_zoom_at(FtCamera2D camera, double pivot_sx, double pivot_sy, double delta_factor);
+void       ft_camera2d_set_zoom_at(FtCamera2D camera, double pivot_sx, double pivot_sy, double new_zoom);
+void       ft_camera2d_pan_by(FtCamera2D camera, double delta_sx, double delta_sy);
+void       ft_camera2d_fit_rect(FtCamera2D camera, double wx, double wy, double ww, double wh,
+                                double view_w, double view_h, double margin);
+double     ft_camera2d_get_zoom(FtCamera2D camera);
+void       ft_camera2d_set_zoom(FtCamera2D camera, double zoom);
+void       ft_camera2d_get_pan(FtCamera2D camera, double* out_pan_x, double* out_pan_y);
+void       ft_camera2d_set_pan(FtCamera2D camera, double pan_x, double pan_y);
+double     ft_camera2d_get_rotation(FtCamera2D camera);
+void       ft_camera2d_set_rotation(FtCamera2D camera, double deg);
 
 /* ─── Icons & Icon Theming ─────────────────────────────────────────────── */
 

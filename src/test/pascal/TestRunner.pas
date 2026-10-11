@@ -13,9 +13,20 @@ uses
   Ft.Widget.Texts, Ft.Widget.Buttons, Ft.Widget.Entries, Ft.Widget.TextAreas,
   Ft.Widget.Switches, Ft.Widget.Selectors, Ft.Widget.PathBars, Ft.Widget.UrlEntries, Ft.Window,
   Ft.Backend.X11, Ft.Backend.EGL, Floria.EGL, Ft.Theme, Floria.Font, Ft.Icons, Ft.Widget.Layouts,
-  Ft.Dialogs;
+  Ft.Dialogs, Ft.Widget.DrawingAreas, Ft.Widget.Rulers, Ft.Widget.Scrubbers, Ft.Camera;
 
 type
+  TFtCreativeFoundationsTest = class(TTestCase)
+  published
+    procedure TestCamera2DWorldScreenRoundtrip();
+    procedure TestCamera2DZoomAtPivot();
+    procedure TestCamera2DFitRect();
+    procedure TestDrawingAreaEvents();
+    procedure TestDrawingAreaMouseWheel();
+    procedure TestRulerTickingAndUnits();
+    procedure TestNumberScrubberClampingAndStep();
+  end;
+
   TFtDialogsTest = class(TTestCase)
   published
     procedure TestMessageDialogProperties();
@@ -3388,12 +3399,205 @@ begin
   end;
 end;
 
+{ ─────────────────── TFtCreativeFoundationsTest ────────────────────────── }
+
+var
+  gLastDrawX, gLastDrawY, gLastDrawBtn: Integer;
+  gLastWheelX, gLastWheelY, gLastWheelDeltaX, gLastWheelDeltaY: Integer;
+
+procedure TestDrawMouseDownCb(Sender: TFtWidget; X, Y, Button: Integer; UserData: Pointer); cdecl;
+begin
+  gLastDrawX := X;
+  gLastDrawY := Y;
+  gLastDrawBtn := Button;
+end;
+
+procedure TestDrawWheelCb(Sender: TFtWidget; X, Y, DeltaX, DeltaY: Integer; UserData: Pointer); cdecl;
+begin
+  gLastWheelX := X;
+  gLastWheelY := Y;
+  gLastWheelDeltaX := DeltaX;
+  gLastWheelDeltaY := DeltaY;
+end;
+
+procedure TFtCreativeFoundationsTest.TestCamera2DWorldScreenRoundtrip();
+var
+  cam: TFtCamera2D;
+  origWx, origWy: Double;
+  sx, sy, backWx, backWy: Double;
+begin
+  cam := FtCameraCreate(0.01, 100.0);
+  cam.PanX := 120.0;
+  cam.PanY := -85.5;
+  cam.Zoom := 2.5;
+
+  origWx := 350.25;
+  origWy := -140.75;
+
+  cam.WorldToScreen(origWx, origWy, sx, sy);
+  cam.ScreenToWorld(sx, sy, backWx, backWy);
+
+  AssertEquals('Camera Roundtrip WldX', Round(origWx * 1000), Round(backWx * 1000));
+  AssertEquals('Camera Roundtrip WldY', Round(origWy * 1000), Round(backWy * 1000));
+end;
+
+procedure TFtCreativeFoundationsTest.TestCamera2DZoomAtPivot();
+var
+  cam: TFtCamera2D;
+  pivotScrX, pivotScrY: Double;
+  worldBeforeX, worldBeforeY: Double;
+  worldAfterX, worldAfterY: Double;
+begin
+  cam := FtCameraCreate(0.01, 100.0);
+  cam.PanX := 50.0;
+  cam.PanY := 50.0;
+  cam.Zoom := 1.0;
+
+  pivotScrX := 400.0;
+  pivotScrY := 300.0;
+
+  cam.ScreenToWorld(pivotScrX, pivotScrY, worldBeforeX, worldBeforeY);
+  // Zoom in by factor of 3.0 anchored on pivot point
+  cam.ZoomAt(pivotScrX, pivotScrY, 3.0);
+  cam.ScreenToWorld(pivotScrX, pivotScrY, worldAfterX, worldAfterY);
+
+  AssertEquals('Pivot Zoom preserves WorldX', Round(worldBeforeX * 1000), Round(worldAfterX * 1000));
+  AssertEquals('Pivot Zoom preserves WorldY', Round(worldBeforeY * 1000), Round(worldAfterY * 1000));
+  AssertEquals('Zoom scale updated', Round(3.0 * 1000), Round(cam.Zoom * 1000));
+end;
+
+procedure TFtCreativeFoundationsTest.TestCamera2DFitRect();
+var
+  cam: TFtCamera2D;
+  sx, sy: Double;
+begin
+  cam := FtCameraCreate(0.01, 100.0);
+  // Fit 800x600 world document in 1000x800 view with 50px margin (avail 900x700)
+  cam.FitRect(0.0, 0.0, 800.0, 600.0, 1000.0, 800.0, 50.0);
+
+  AssertTrue('Zoom > 0', cam.Zoom > 0.0);
+  // Center of document (400, 300) should project to center of view (500, 400)
+  cam.WorldToScreen(400.0, 300.0, sx, sy);
+  AssertEquals('Document center Screen X', 500, Round(sx));
+  AssertEquals('Document center Screen Y', 400, Round(sy));
+end;
+
+procedure TFtCreativeFoundationsTest.TestDrawingAreaEvents();
+var
+  area: TFtDrawingArea;
+begin
+  area := TFtDrawingArea.Create(nil);
+  try
+    area.SetBounds(50, 100, 300, 200);
+    area.Cursor := FT_CURSOR_CROSSHAIR;
+    AssertEquals('DrawingArea cursor', FT_CURSOR_CROSSHAIR, area.GetCursor());
+
+    gLastDrawX := -1;
+    gLastDrawY := -1;
+    gLastDrawBtn := -1;
+
+    area.OnMouseDown := @TestDrawMouseDownCb;
+    // Simulate mouse down at absolute window coords (75, 140) => relative (25, 40)
+    area.MouseDown(75, 140, 1);
+
+    AssertEquals('Relative X', 25, gLastDrawX);
+    AssertEquals('Relative Y', 40, gLastDrawY);
+    AssertEquals('Button', 1, gLastDrawBtn);
+  finally
+    area.Free();
+  end;
+end;
+
+procedure TFtCreativeFoundationsTest.TestDrawingAreaMouseWheel();
+var
+  area: TFtDrawingArea;
+begin
+  area := TFtDrawingArea.Create(nil);
+  try
+    area.SetBounds(0, 0, 400, 400);
+    gLastWheelDeltaX := 0;
+    gLastWheelDeltaY := 0;
+
+    area.OnMouseWheel := @TestDrawWheelCb;
+
+    // Button 4 is Wheel Up (DeltaY = +1)
+    area.MouseDown(150, 150, 4);
+    AssertEquals('Wheel Up DeltaY', 1, gLastWheelDeltaY);
+
+    // Button 5 is Wheel Down (DeltaY = -1)
+    area.MouseDown(150, 150, 5);
+    AssertEquals('Wheel Down DeltaY', -1, gLastWheelDeltaY);
+
+    // Button 6 is Wheel Left (DeltaX = -1)
+    area.MouseDown(150, 150, 6);
+    AssertEquals('Wheel Left DeltaX', -1, gLastWheelDeltaX);
+
+    // Button 7 is Wheel Right (DeltaX = +1)
+    area.MouseDown(150, 150, 7);
+    AssertEquals('Wheel Right DeltaX', 1, gLastWheelDeltaX);
+  finally
+    area.Free();
+  end;
+end;
+
+procedure TFtCreativeFoundationsTest.TestRulerTickingAndUnits();
+var
+  rH, rV: TFtRuler;
+begin
+  rH := TFtRuler.Create(nil, ftroHorizontal);
+  rV := TFtRuler.Create(nil, ftroVertical);
+  try
+    AssertEquals('Horizontal ruler orientation', Ord(ftroHorizontal), Ord(rH.Orientation));
+    AssertEquals('Vertical ruler orientation', Ord(ftroVertical), Ord(rV.Orientation));
+
+    rH.SetOriginAndScale(150.0, 2.0);
+    AssertEquals('Ruler Origin', Round(150.0 * 100), Round(rH.Origin * 100));
+    AssertEquals('Ruler Scale', Round(2.0 * 100), Round(rH.Scale * 100));
+
+    rH.PointerPos := 240.0;
+    AssertEquals('Ruler PointerPos', Round(240.0 * 100), Round(rH.PointerPos * 100));
+
+    rH.UnitKind := fruInches;
+    AssertEquals('Ruler UnitInches', Ord(fruInches), Ord(rH.UnitKind));
+  finally
+    rH.Free();
+    rV.Free();
+  end;
+end;
+
+procedure TFtCreativeFoundationsTest.TestNumberScrubberClampingAndStep();
+var
+  ns: TFtNumberScrubber;
+begin
+  ns := TFtNumberScrubber.Create(nil);
+  try
+    ns.SetRange(0.0, 100.0);
+    ns.Step := 5.0;
+    ns.Decimals := 1;
+    ns.Suffix := '%';
+
+    ns.Value := 50.0;
+    AssertEquals('Scrubber initial value', Round(50.0 * 10), Round(ns.Value * 10));
+
+    // Clamping to max
+    ns.Value := 150.0;
+    AssertEquals('Scrubber clamped to max', Round(100.0 * 10), Round(ns.Value * 10));
+
+    // Clamping to min
+    ns.Value := -25.0;
+    AssertEquals('Scrubber clamped to min', Round(0.0 * 10), Round(ns.Value * 10));
+  finally
+    ns.Free();
+  end;
+end;
+
 var
   Application: TTestRunner;
 
 begin
   Application := TTestRunner.Create(nil);
   try
+    RegisterTest(TFtCreativeFoundationsTest);
     RegisterTest(TFtDialogsTest);
     RegisterTest(TFtLayoutsTest);
     RegisterTest(TFtIconsTest);

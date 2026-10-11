@@ -41,7 +41,11 @@ uses
   Ft.Dialogs,
   Ft.Icons,
   Ft.Gpu,
-  Ft.Widget.Layouts;
+  Ft.Widget.Layouts,
+  Ft.Widget.DrawingAreas,
+  Ft.Widget.Rulers,
+  Ft.Widget.Scrubbers,
+  Ft.Camera;
 
 var
   gLastIconSvg: AnsiString;
@@ -4170,7 +4174,7 @@ var
 begin
   if Assigned(ACanvas) and (TObject(ACanvas) is TFtCanvas) and Assigned(AText) then
   begin
-    if Assigned(AFont) and (TObject(AFont) is TFtFont) then f := TFtFont(AFont) else f := nil;
+    if Assigned(AFont) and (TObject(AFont) is TFtFont) then f := TFtFont(AFont) else f := FtGetSystemFont();
     TFtCanvas(ACanvas).DrawText(AX, AY, string(AText), f, AR, AG, AB);
   end;
 end;
@@ -4181,7 +4185,7 @@ var
 begin
   if Assigned(ACanvas) and (TObject(ACanvas) is TFtCanvas) and Assigned(AText) then
   begin
-    if Assigned(AFont) and (TObject(AFont) is TFtFont) then f := TFtFont(AFont) else f := nil;
+    if Assigned(AFont) and (TObject(AFont) is TFtFont) then f := TFtFont(AFont) else f := FtGetSystemFont();
     TFtCanvas(ACanvas).DrawTextLeft(AX, AY, AW, AH, string(AText), f, AR, AG, AB);
   end;
 end;
@@ -4192,7 +4196,7 @@ var
 begin
   if Assigned(ACanvas) and (TObject(ACanvas) is TFtCanvas) and Assigned(AText) then
   begin
-    if Assigned(AFont) and (TObject(AFont) is TFtFont) then f := TFtFont(AFont) else f := nil;
+    if Assigned(AFont) and (TObject(AFont) is TFtFont) then f := TFtFont(AFont) else f := FtGetSystemFont();
     TFtCanvas(ACanvas).DrawTextCentered(AX, AY, AW, AH, string(AText), f, AR, AG, AB);
   end;
 end;
@@ -5602,6 +5606,374 @@ begin
   end;
 end;
 
+{ ──────────────────────── Drawing Area Widget ────────────────────────── }
+
+function ft_drawingarea_create(parent: Pointer; x, y, w, h: cint32): Pointer; cdecl; export;
+var
+  area: TFtDrawingArea;
+begin
+  area := TFtDrawingArea.Create(TFtWidget(parent));
+  area.SetBounds(x, y, w, h);
+  Result := area;
+end;
+
+procedure ft_drawingarea_set_cursor(area: Pointer; cursor_type: cint32); cdecl; export;
+begin
+  if Assigned(area) and (TObject(area) is TFtDrawingArea) then
+    TFtDrawingArea(area).Cursor := cursor_type;
+end;
+
+function ft_drawingarea_get_cursor(area: Pointer): cint32; cdecl; export;
+begin
+  Result := FT_CURSOR_DEFAULT;
+  if Assigned(area) and (TObject(area) is TFtDrawingArea) then
+    Result := TFtDrawingArea(area).Cursor;
+end;
+
+procedure ft_drawingarea_set_clip_to_bounds(area: Pointer; clip: cint32); cdecl; export;
+begin
+  if Assigned(area) and (TObject(area) is TFtDrawingArea) then
+    TFtDrawingArea(area).ClipToBounds := (clip <> 0);
+end;
+
+procedure ft_drawingarea_on_paint(area: Pointer; callback: TFtDrawingPaintCallback; user_data: Pointer); cdecl; export;
+begin
+  if Assigned(area) and (TObject(area) is TFtDrawingArea) then
+  begin
+    TFtDrawingArea(area).OnPaint := callback;
+    TFtDrawingArea(area).UserData := user_data;
+  end;
+end;
+
+procedure ft_drawingarea_on_mouse_down(area: Pointer; callback: TFtDrawingMouseEvent; user_data: Pointer); cdecl; export;
+begin
+  if Assigned(area) and (TObject(area) is TFtDrawingArea) then
+  begin
+    TFtDrawingArea(area).OnMouseDown := callback;
+    TFtDrawingArea(area).UserData := user_data;
+  end;
+end;
+
+procedure ft_drawingarea_on_mouse_up(area: Pointer; callback: TFtDrawingMouseEvent; user_data: Pointer); cdecl; export;
+begin
+  if Assigned(area) and (TObject(area) is TFtDrawingArea) then
+  begin
+    TFtDrawingArea(area).OnMouseUp := callback;
+    TFtDrawingArea(area).UserData := user_data;
+  end;
+end;
+
+procedure ft_drawingarea_on_mouse_move(area: Pointer; callback: TFtDrawingMouseMoveEvent; user_data: Pointer); cdecl; export;
+begin
+  if Assigned(area) and (TObject(area) is TFtDrawingArea) then
+  begin
+    TFtDrawingArea(area).OnMouseMove := callback;
+    TFtDrawingArea(area).UserData := user_data;
+  end;
+end;
+
+procedure ft_drawingarea_on_mouse_wheel(area: Pointer; callback: TFtDrawingWheelEvent; user_data: Pointer); cdecl; export;
+begin
+  if Assigned(area) and (TObject(area) is TFtDrawingArea) then
+  begin
+    TFtDrawingArea(area).OnMouseWheel := callback;
+    TFtDrawingArea(area).UserData := user_data;
+  end;
+end;
+
+procedure ft_drawingarea_on_mouse_enter(area: Pointer; callback: TFtDrawingMouseMoveEvent; user_data: Pointer); cdecl; export;
+begin
+  if Assigned(area) and (TObject(area) is TFtDrawingArea) then
+  begin
+    TFtDrawingArea(area).OnMouseEnter := callback;
+    TFtDrawingArea(area).UserData := user_data;
+  end;
+end;
+
+procedure ft_drawingarea_on_mouse_leave(area: Pointer; callback: TFtDrawingMouseMoveEvent; user_data: Pointer); cdecl; export;
+begin
+  if Assigned(area) and (TObject(area) is TFtDrawingArea) then
+  begin
+    TFtDrawingArea(area).OnMouseLeave := callback;
+    TFtDrawingArea(area).UserData := user_data;
+  end;
+end;
+
+procedure ft_drawingarea_on_key_down(area: Pointer; callback: TFtDrawingKeyEvent; user_data: Pointer); cdecl; export;
+begin
+  if Assigned(area) and (TObject(area) is TFtDrawingArea) then
+  begin
+    TFtDrawingArea(area).OnKeyDown := callback;
+    TFtDrawingArea(area).UserData := user_data;
+    TFtDrawingArea(area).SetFocusable(True);
+  end;
+end;
+
+procedure ft_drawingarea_on_key_up(area: Pointer; callback: TFtDrawingKeyEvent; user_data: Pointer); cdecl; export;
+begin
+  if Assigned(area) and (TObject(area) is TFtDrawingArea) then
+  begin
+    TFtDrawingArea(area).OnKeyUp := callback;
+    TFtDrawingArea(area).UserData := user_data;
+  end;
+end;
+
+procedure ft_drawingarea_on_resize(area: Pointer; callback: TFtDrawingResizeEvent; user_data: Pointer); cdecl; export;
+begin
+  if Assigned(area) and (TObject(area) is TFtDrawingArea) then
+  begin
+    TFtDrawingArea(area).OnResize := callback;
+    TFtDrawingArea(area).UserData := user_data;
+  end;
+end;
+
+{ ──────────────────────── Measurement Ruler Widget ───────────────────── }
+
+function ft_ruler_create(parent: Pointer; orientation: cint32; x, y, w, h: cint32): Pointer; cdecl; export;
+var
+  ruler: TFtRuler;
+begin
+  ruler := TFtRuler.Create(TFtWidget(parent), TFtRulerOrientation(orientation));
+  ruler.SetBounds(x, y, w, h);
+  Result := ruler;
+end;
+
+procedure ft_ruler_set_origin_and_scale(ruler: Pointer; origin, scale: Double); cdecl; export;
+begin
+  if Assigned(ruler) and (TObject(ruler) is TFtRuler) then
+    TFtRuler(ruler).SetOriginAndScale(origin, scale);
+end;
+
+procedure ft_ruler_set_pointer_position(ruler: Pointer; pos: Double); cdecl; export;
+begin
+  if Assigned(ruler) and (TObject(ruler) is TFtRuler) then
+    TFtRuler(ruler).SetPointerPosition(pos);
+end;
+
+procedure ft_ruler_set_unit(ruler: Pointer; unit_kind: cint32); cdecl; export;
+begin
+  if Assigned(ruler) and (TObject(ruler) is TFtRuler) then
+    TFtRuler(ruler).UnitKind := TFtRulerUnit(unit_kind);
+end;
+
+function ft_ruler_get_unit(ruler: Pointer): cint32; cdecl; export;
+begin
+  Result := 0;
+  if Assigned(ruler) and (TObject(ruler) is TFtRuler) then
+    Result := Ord(TFtRuler(ruler).UnitKind);
+end;
+
+procedure ft_ruler_set_show_pointer(ruler: Pointer; show: cint32); cdecl; export;
+begin
+  if Assigned(ruler) and (TObject(ruler) is TFtRuler) then
+    TFtRuler(ruler).ShowPointer := (show <> 0);
+end;
+
+procedure ft_ruler_set_thickness(ruler: Pointer; thickness: cint32); cdecl; export;
+begin
+  if Assigned(ruler) and (TObject(ruler) is TFtRuler) then
+    TFtRuler(ruler).Thickness := thickness;
+end;
+
+procedure ft_ruler_on_create_guide(ruler: Pointer; callback: TFtRulerGuideEvent; user_data: Pointer); cdecl; export;
+begin
+  if Assigned(ruler) and (TObject(ruler) is TFtRuler) then
+  begin
+    TFtRuler(ruler).OnCreateGuide := callback;
+    TFtRuler(ruler).UserData := user_data;
+  end;
+end;
+
+{ ──────────────────────── Numeric Scrubber Widget ────────────────────── }
+
+function ft_numberscrubber_create(parent: Pointer; x, y, w, h: cint32; label_text: PChar): Pointer; cdecl; export;
+var
+  ns: TFtNumberScrubber;
+begin
+  ns := TFtNumberScrubber.Create(TFtWidget(parent));
+  ns.SetBounds(x, y, w, h);
+  if Assigned(label_text) then
+    ns.LabelText := string(label_text);
+  Result := ns;
+end;
+
+procedure ft_numberscrubber_set_value(scrubber: Pointer; value: Double); cdecl; export;
+begin
+  if Assigned(scrubber) and (TObject(scrubber) is TFtNumberScrubber) then
+    TFtNumberScrubber(scrubber).Value := value;
+end;
+
+function ft_numberscrubber_get_value(scrubber: Pointer): Double; cdecl; export;
+begin
+  Result := 0.0;
+  if Assigned(scrubber) and (TObject(scrubber) is TFtNumberScrubber) then
+    Result := TFtNumberScrubber(scrubber).Value;
+end;
+
+procedure ft_numberscrubber_set_range(scrubber: Pointer; min_val, max_val: Double); cdecl; export;
+begin
+  if Assigned(scrubber) and (TObject(scrubber) is TFtNumberScrubber) then
+    TFtNumberScrubber(scrubber).SetRange(min_val, max_val);
+end;
+
+procedure ft_numberscrubber_set_step(scrubber: Pointer; step: Double); cdecl; export;
+begin
+  if Assigned(scrubber) and (TObject(scrubber) is TFtNumberScrubber) then
+    TFtNumberScrubber(scrubber).Step := step;
+end;
+
+procedure ft_numberscrubber_set_decimals(scrubber: Pointer; decimals: cint32); cdecl; export;
+begin
+  if Assigned(scrubber) and (TObject(scrubber) is TFtNumberScrubber) then
+    TFtNumberScrubber(scrubber).Decimals := decimals;
+end;
+
+procedure ft_numberscrubber_set_suffix(scrubber: Pointer; suffix: PChar); cdecl; export;
+begin
+  if Assigned(scrubber) and (TObject(scrubber) is TFtNumberScrubber) then
+  begin
+    if Assigned(suffix) then
+      TFtNumberScrubber(scrubber).Suffix := string(suffix)
+    else
+      TFtNumberScrubber(scrubber).Suffix := '';
+  end;
+end;
+
+procedure ft_numberscrubber_set_prefix(scrubber: Pointer; prefix: PChar); cdecl; export;
+begin
+  if Assigned(scrubber) and (TObject(scrubber) is TFtNumberScrubber) then
+  begin
+    if Assigned(prefix) then
+      TFtNumberScrubber(scrubber).Prefix := string(prefix)
+    else
+      TFtNumberScrubber(scrubber).Prefix := '';
+  end;
+end;
+
+procedure ft_numberscrubber_on_change(scrubber: Pointer; callback: TFtScrubberChangeEvent; user_data: Pointer); cdecl; export;
+begin
+  if Assigned(scrubber) and (TObject(scrubber) is TFtNumberScrubber) then
+  begin
+    TFtNumberScrubber(scrubber).OnChange := callback;
+    TFtNumberScrubber(scrubber).UserData := user_data;
+  end;
+end;
+
+{ ──────────────────────── 2D Camera Engine ───────────────────────────── }
+
+function ft_camera2d_create(min_zoom, max_zoom: Double): Pointer; cdecl; export;
+var
+  cam: PFtCamera2D;
+begin
+  New(cam);
+  cam^.Init(min_zoom, max_zoom);
+  Result := cam;
+end;
+
+procedure ft_camera2d_destroy(camera: Pointer); cdecl; export;
+begin
+  if Assigned(camera) then
+    Dispose(PFtCamera2D(camera));
+end;
+
+procedure ft_camera2d_reset(camera: Pointer); cdecl; export;
+begin
+  if Assigned(camera) then
+    PFtCamera2D(camera)^.Reset();
+end;
+
+procedure ft_camera2d_world_to_screen(camera: Pointer; wx, wy: Double; out_sx, out_sy: PDouble); cdecl; export;
+var
+  sx, sy: Double;
+begin
+  if Assigned(camera) then
+  begin
+    PFtCamera2D(camera)^.WorldToScreen(wx, wy, sx, sy);
+    if Assigned(out_sx) then out_sx^ := sx;
+    if Assigned(out_sy) then out_sy^ := sy;
+  end;
+end;
+
+procedure ft_camera2d_screen_to_world(camera: Pointer; sx, sy: Double; out_wx, out_wy: PDouble); cdecl; export;
+var
+  wx, wy: Double;
+begin
+  if Assigned(camera) then
+  begin
+    PFtCamera2D(camera)^.ScreenToWorld(sx, sy, wx, wy);
+    if Assigned(out_wx) then out_wx^ := wx;
+    if Assigned(out_wy) then out_wy^ := wy;
+  end;
+end;
+
+procedure ft_camera2d_zoom_at(camera: Pointer; pivot_sx, pivot_sy, delta_factor: Double); cdecl; export;
+begin
+  if Assigned(camera) then
+    PFtCamera2D(camera)^.ZoomAt(pivot_sx, pivot_sy, delta_factor);
+end;
+
+procedure ft_camera2d_set_zoom_at(camera: Pointer; pivot_sx, pivot_sy, new_zoom: Double); cdecl; export;
+begin
+  if Assigned(camera) then
+    PFtCamera2D(camera)^.SetZoomAt(pivot_sx, pivot_sy, new_zoom);
+end;
+
+procedure ft_camera2d_pan_by(camera: Pointer; delta_sx, delta_sy: Double); cdecl; export;
+begin
+  if Assigned(camera) then
+    PFtCamera2D(camera)^.PanBy(delta_sx, delta_sy);
+end;
+
+procedure ft_camera2d_fit_rect(camera: Pointer; wx, wy, ww, wh, view_w, view_h, margin: Double); cdecl; export;
+begin
+  if Assigned(camera) then
+    PFtCamera2D(camera)^.FitRect(wx, wy, ww, wh, view_w, view_h, margin);
+end;
+
+function ft_camera2d_get_zoom(camera: Pointer): Double; cdecl; export;
+begin
+  Result := 1.0;
+  if Assigned(camera) then
+    Result := PFtCamera2D(camera)^.Zoom;
+end;
+
+procedure ft_camera2d_set_zoom(camera: Pointer; zoom: Double); cdecl; export;
+begin
+  if Assigned(camera) then
+    PFtCamera2D(camera)^.Zoom := zoom;
+end;
+
+procedure ft_camera2d_get_pan(camera: Pointer; out_pan_x, out_pan_y: PDouble); cdecl; export;
+begin
+  if Assigned(camera) then
+  begin
+    if Assigned(out_pan_x) then out_pan_x^ := PFtCamera2D(camera)^.PanX;
+    if Assigned(out_pan_y) then out_pan_y^ := PFtCamera2D(camera)^.PanY;
+  end;
+end;
+
+procedure ft_camera2d_set_pan(camera: Pointer; pan_x, pan_y: Double); cdecl; export;
+begin
+  if Assigned(camera) then
+  begin
+    PFtCamera2D(camera)^.PanX := pan_x;
+    PFtCamera2D(camera)^.PanY := pan_y;
+  end;
+end;
+
+function ft_camera2d_get_rotation(camera: Pointer): Double; cdecl; export;
+begin
+  Result := 0.0;
+  if Assigned(camera) then
+    Result := PFtCamera2D(camera)^.Rotation;
+end;
+
+procedure ft_camera2d_set_rotation(camera: Pointer; deg: Double); cdecl; export;
+begin
+  if Assigned(camera) then
+    PFtCamera2D(camera)^.Rotation := deg;
+end;
+
 { ──────────────────────── Icons & Icon Theming ────────────────────────── }
 
 function ft_icon_get_svg(name: PChar; dark_mode: cint32): PChar; cdecl; export;
@@ -6385,7 +6757,61 @@ exports
   ft_show_warning,
   ft_show_error,
   ft_confirm,
-  ft_confirm_with_verification;
+  ft_confirm_with_verification,
+
+  // Drawing Area
+  ft_drawingarea_create,
+  ft_drawingarea_set_cursor,
+  ft_drawingarea_get_cursor,
+  ft_drawingarea_set_clip_to_bounds,
+  ft_drawingarea_on_paint,
+  ft_drawingarea_on_mouse_down,
+  ft_drawingarea_on_mouse_up,
+  ft_drawingarea_on_mouse_move,
+  ft_drawingarea_on_mouse_wheel,
+  ft_drawingarea_on_mouse_enter,
+  ft_drawingarea_on_mouse_leave,
+  ft_drawingarea_on_key_down,
+  ft_drawingarea_on_key_up,
+  ft_drawingarea_on_resize,
+
+  // Measurement Ruler
+  ft_ruler_create,
+  ft_ruler_set_origin_and_scale,
+  ft_ruler_set_pointer_position,
+  ft_ruler_set_unit,
+  ft_ruler_get_unit,
+  ft_ruler_set_show_pointer,
+  ft_ruler_set_thickness,
+  ft_ruler_on_create_guide,
+
+  // Numeric Scrubber
+  ft_numberscrubber_create,
+  ft_numberscrubber_set_value,
+  ft_numberscrubber_get_value,
+  ft_numberscrubber_set_range,
+  ft_numberscrubber_set_step,
+  ft_numberscrubber_set_decimals,
+  ft_numberscrubber_set_suffix,
+  ft_numberscrubber_set_prefix,
+  ft_numberscrubber_on_change,
+
+  // 2D Camera Engine
+  ft_camera2d_create,
+  ft_camera2d_destroy,
+  ft_camera2d_reset,
+  ft_camera2d_world_to_screen,
+  ft_camera2d_screen_to_world,
+  ft_camera2d_zoom_at,
+  ft_camera2d_set_zoom_at,
+  ft_camera2d_pan_by,
+  ft_camera2d_fit_rect,
+  ft_camera2d_get_zoom,
+  ft_camera2d_set_zoom,
+  ft_camera2d_get_pan,
+  ft_camera2d_set_pan,
+  ft_camera2d_get_rotation,
+  ft_camera2d_set_rotation;
 
 begin
 end.

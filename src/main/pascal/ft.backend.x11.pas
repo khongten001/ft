@@ -123,7 +123,9 @@ var
   GCursorIBeam: xcb_cursor_t = 0;
   GCursorSizeH: xcb_cursor_t = 0;
   GCursorSizeV: xcb_cursor_t = 0;
-  GCursorHand:  xcb_cursor_t = 0;
+  GCursorHand:      xcb_cursor_t = 0;
+  GCursorCrosshair: xcb_cursor_t = 0;
+  GCursorMove:      xcb_cursor_t = 0;
   GRunning: Boolean = False;
 
 procedure FtBackendInit();
@@ -326,6 +328,11 @@ begin
     GCursorHand := xcb_cursor_load_cursor(GCursorContext, 'pointer');
     if GCursorHand = 0 then
       GCursorHand := xcb_cursor_load_cursor(GCursorContext, 'hand2');
+
+    GCursorCrosshair := xcb_cursor_load_cursor(GCursorContext, 'crosshair');
+    GCursorMove := xcb_cursor_load_cursor(GCursorContext, 'fleur');
+    if GCursorMove = 0 then
+      GCursorMove := xcb_cursor_load_cursor(GCursorContext, 'move');
   end;
 
   GRunning := True;
@@ -1630,10 +1637,12 @@ begin
   begin
     cType := target.GetCursor();
     case cType of
-      FT_CURSOR_IBEAM:  targetCursor := GCursorIBeam;
-      FT_CURSOR_SIZE_H: targetCursor := GCursorSizeH;
-      FT_CURSOR_SIZE_V: targetCursor := GCursorSizeV;
-      FT_CURSOR_HAND:   targetCursor := GCursorHand;
+      FT_CURSOR_IBEAM:     targetCursor := GCursorIBeam;
+      FT_CURSOR_SIZE_H:    targetCursor := GCursorSizeH;
+      FT_CURSOR_SIZE_V:    targetCursor := GCursorSizeV;
+      FT_CURSOR_HAND:      targetCursor := GCursorHand;
+      FT_CURSOR_CROSSHAIR: targetCursor := GCursorCrosshair;
+      FT_CURSOR_MOVE:      targetCursor := GCursorMove;
     else
       targetCursor := 0;
     end;

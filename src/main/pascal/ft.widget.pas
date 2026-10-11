@@ -8,11 +8,13 @@ uses
   SysUtils, Classes, Floria.Canvas.Agg, Ft.Canvas, Floria.Font, Ft.Css, Ft.Animation;
 
 const
-  FT_CURSOR_DEFAULT = 0;
-  FT_CURSOR_IBEAM   = 1;
-  FT_CURSOR_SIZE_H  = 2;
-  FT_CURSOR_SIZE_V  = 3;
-  FT_CURSOR_HAND    = 4;
+  FT_CURSOR_DEFAULT   = 0;
+  FT_CURSOR_IBEAM     = 1;
+  FT_CURSOR_SIZE_H    = 2;
+  FT_CURSOR_SIZE_V    = 3;
+  FT_CURSOR_HAND      = 4;
+  FT_CURSOR_CROSSHAIR = 5;
+  FT_CURSOR_MOVE      = 6;
 
   FT_KEY_MOD_SHIFT   = 1;
   FT_KEY_MOD_LOCK    = 2;
