@@ -276,11 +276,11 @@ begin
       begin
         if (s >= 0) and (s <= Width) then
         begin
-          Canvas.DrawLine(X + s, Y + Height - tickLen, X + s, Y + Height, 1.0, tkR, tkG, tkB, 0.9);
+          Canvas.DrawLine(Round(X + s), Y + Height - tickLen, Round(X + s), Y + Height, 1.0, tkR, tkG, tkB, 0.9);
           if isMajor and Assigned(fnt) then
           begin
             lbl := FormatNumber(w);
-            Canvas.DrawText(X + s + 3.0, Y + Height - tickLen + 1.0, lbl, fnt, txtR, txtG, txtB);
+            Canvas.DrawText(Round(X + s + 3.0), Round(Y + fnt.Ascent + 2.0), lbl, fnt, txtR, txtG, txtB);
           end;
         end;
       end
@@ -288,12 +288,12 @@ begin
       begin
         if (s >= 0) and (s <= Height) then
         begin
-          Canvas.DrawLine(X + Width - tickLen, Y + s, X + Width, Y + s, 1.0, tkR, tkG, tkB, 0.9);
+          Canvas.DrawLine(X + Width - tickLen, Round(Y + s), X + Width, Round(Y + s), 1.0, tkR, tkG, tkB, 0.9);
           if isMajor and Assigned(fnt) then
           begin
             lbl := FormatNumber(w);
             // Draw vertical coordinate label rotated 90 counter-clockwise
-            Canvas.DrawTextRotated(X + Width - 7.0, Y + s - 3.0, lbl, fnt, -90.0, txtR, txtG, txtB);
+            Canvas.DrawTextRotated(Round(X + Width - 7.0), Round(Y + s - 3.0), lbl, fnt, -90.0, txtR, txtG, txtB);
           end;
         end;
       end;
@@ -307,12 +307,12 @@ begin
       if FOrientation = ftroHorizontal then
       begin
         if (FPointerPos >= 0.0) and (FPointerPos <= Width) then
-          Canvas.DrawLine(X + FPointerPos, Y, X + FPointerPos, Y + Height, 1.5, ptrR, ptrG, ptrB, 1.0);
+          Canvas.DrawLine(Round(X + FPointerPos), Y, Round(X + FPointerPos), Y + Height, 1.5, ptrR, ptrG, ptrB, 1.0);
       end
       else
       begin
         if (FPointerPos >= 0.0) and (FPointerPos <= Height) then
-          Canvas.DrawLine(X, Y + FPointerPos, X + Width, Y + FPointerPos, 1.5, ptrR, ptrG, ptrB, 1.0);
+          Canvas.DrawLine(X, Round(Y + FPointerPos), X + Width, Round(Y + FPointerPos), 1.5, ptrR, ptrG, ptrB, 1.0);
       end;
     end;
 
