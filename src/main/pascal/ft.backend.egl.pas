@@ -818,8 +818,9 @@ begin
           FCGLDrawCallback(Pointer(Self), Width, Height, FCGLDrawUserData);
 
         eglSwapBuffers(FEGLDisplay, FEGLSurface);
-      finally
+      except
         ReleaseCurrent();
+        raise;
       end;
     end
     else

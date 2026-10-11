@@ -17,6 +17,8 @@ static FtWidget s_scrub_y = NULL;
 static FtWidget s_scrub_w = NULL;
 static FtWidget s_scrub_h = NULL;
 static FtWidget s_scrub_zoom = NULL;
+static FtWidget s_win = NULL;
+static int32_t s_vsync = 0;
 
 /* Document Artboard dimensions (in World Coordinates) */
 static double s_doc_x = 100.0;
@@ -211,8 +213,11 @@ static void on_mouse_move_canvas(FtWidget widget, int32_t x, int32_t y, void* us
     if (s_ruler_h) ft_ruler_set_pointer_position(s_ruler_h, (double)x);
     if (s_ruler_v) ft_ruler_set_pointer_position(s_ruler_v, (double)y);
 
-    /* Update World coordinates in status bar */
-    if (s_camera && s_status_coords) {
+    /* Update World coordinates in status bar (avoid updating on subpixel jitter) */
+    static int s_last_status_x = -999, s_last_status_y = -999;
+    if (s_camera && s_status_coords && (abs(x - s_last_status_x) >= 2 || abs(y - s_last_status_y) >= 2)) {
+        s_last_status_x = x;
+        s_last_status_y = y;
         double wx = 0.0, wy = 0.0;
         ft_camera2d_screen_to_world(s_camera, (double)x, (double)y, &wx, &wy);
         /* Coordinates relative to document origin */
@@ -369,6 +374,17 @@ static void on_unit_mm(FtWidget widget, void* user_data) {
     if (s_ruler_v) ft_ruler_set_unit(s_ruler_v, FT_RULER_UNIT_MILLIMETERS);
 }
 
+static void on_btn_toggle_vsync(FtWidget widget, void* user_data) {
+    (void)user_data;
+    s_vsync = !s_vsync;
+    if (s_win) ft_window_set_swap_interval(s_win, s_vsync);
+    if (s_vsync) {
+        ft_button_set_caption(widget, "VSync: 60Hz");
+    } else {
+        ft_button_set_caption(widget, "VSync: OFF (0ms)");
+    }
+}
+
 static void on_dark_mode_toggle(FtWidget widget, int32_t active, void* user_data) {
     (void)widget; (void)user_data;
     ft_theme_set_dark_mode(active);
@@ -386,6 +402,13 @@ int main(int argc, char** argv) {
 
     FtWidget win = ft_window_create(960, 680, "Floria Creative Viewport & Ruler Studio");
     ft_window_set_position(win, 60, 60);
+    s_win = win;
+
+    // Set swap interval to 0 (Uncapped / immediate presentation for fluid mouse drag without VSync input lag)
+    ft_window_set_swap_interval(win, 0);
+
+    printf("[Creative Canvas] EGL available: %d, Window GPU accelerated: %d, Swap interval: 0\n",
+           ft_egl_is_available(), ft_window_is_hardware_accelerated(win));
 
     /* Root vertical layout */
     FtWidget root = ft_vbox_create(win, 0, 0, 960, 680);
@@ -398,7 +421,7 @@ int main(int argc, char** argv) {
     ft_flexbox_set_gap(top_bar, 8.0);
     ft_widget_set_style(top_bar, "background-color: rgba(100, 116, 139, 0.08); border-bottom: 1px solid rgba(100, 116, 139, 0.2);");
 
-    FtWidget title_lbl = ft_text_create(top_bar, 0, 0, 170, 28, "Creative Viewport");
+    FtWidget title_lbl = ft_text_create(top_bar, 0, 0, 160, 28, "Creative Viewport");
     ft_widget_set_font(title_lbl, "sans-serif,12,bold");
 
     /* Zoom Buttons */
@@ -423,6 +446,10 @@ int main(int argc, char** argv) {
 
     FtWidget btn_mm = ft_button_create(top_bar, 0, 0, 40, 28, "mm");
     ft_button_on_click(btn_mm, on_unit_mm, NULL);
+
+    /* VSync toggle button */
+    FtWidget btn_vsync = ft_button_create(top_bar, 0, 0, 120, 28, "VSync: OFF (0ms)");
+    ft_button_on_click(btn_vsync, on_btn_toggle_vsync, NULL);
 
     ft_spacer_create(top_bar);
 

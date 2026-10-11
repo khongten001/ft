@@ -292,7 +292,7 @@ begin
   begin
     FText := AValue;
     ClearSelection();
-    if Assigned(Parent) and (Parent.Width > 0) and (Parent.Height > 0) then
+    if FWordWrap and Assigned(Parent) and (Parent.Width > 0) and (Parent.Height > 0) then
       Parent.UpdateLayout();
     Invalidate();
     if Assigned(FOnChange) then
