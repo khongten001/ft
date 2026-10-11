@@ -25,6 +25,7 @@ type
     procedure TestDrawingAreaMouseWheel();
     procedure TestRulerTickingAndUnits();
     procedure TestNumberScrubberClampingAndStep();
+    procedure TestRulerVerticalRotatedText();
   end;
 
   TFtDialogsTest = class(TTestCase)
@@ -3588,6 +3589,49 @@ begin
     AssertEquals('Scrubber clamped to min', Round(0.0 * 10), Round(ns.Value * 10));
   finally
     ns.Free();
+  end;
+end;
+
+procedure TFtCreativeFoundationsTest.TestRulerVerticalRotatedText();
+var
+  rV: TFtRuler;
+  img: TFloriaImage;
+  cv: TFtCanvasAgg;
+  foundPixel: Boolean;
+  x, y: Integer;
+  pix: PBgraPixel;
+begin
+  rV := TFtRuler.Create(nil, ftroVertical);
+  img := TFloriaImage.Create(20, 200, fpfBGRA32);
+  cv := TFtCanvasAgg.Create(img);
+  try
+    rV.SetBounds(0, 0, 20, 200);
+    rV.SetOriginAndScale(50.0, 1.0);
+
+    // 1. Verify ruler draws without error with rotated text
+    rV.Draw(cv);
+
+    // 2. Direct DrawTextRotated invocation on canvas
+    cv.DrawTextRotated(14.0, 120.0, '100', 8.0, -90.0, 1.0, 1.0, 1.0);
+
+    // 3. Verify non-zero alpha pixels exist on image
+    foundPixel := False;
+    for y := 0 to 199 do
+      for x := 0 to 19 do
+      begin
+        pix := PBgraPixel(PByte(img.PixelBuffer) + (y * img.Stride) + (x * 4));
+        if pix^.A > 0 then
+        begin
+          foundPixel := True;
+          Break;
+        end;
+      end;
+
+    AssertTrue('Rotated vertical text rasterized pixels', foundPixel);
+  finally
+    cv.Free();
+    img.Free();
+    rV.Free();
   end;
 end;
 

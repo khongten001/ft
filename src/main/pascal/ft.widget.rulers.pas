@@ -292,8 +292,8 @@ begin
           if isMajor and Assigned(fnt) then
           begin
             lbl := FormatNumber(w);
-            // Draw vertical coordinate label
-            Canvas.DrawText(X + 2.0, Y + s - 3.0, lbl, fnt, txtR, txtG, txtB);
+            // Draw vertical coordinate label rotated 90 counter-clockwise
+            Canvas.DrawTextRotated(X + Width - 7.0, Y + s - 3.0, lbl, fnt, -90.0, txtR, txtG, txtB);
           end;
         end;
       end;
