@@ -79,6 +79,14 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 
 ## Visual Showcase
 
+### Creative Viewport, Rulers & Interactive Canvas
+![Creative Viewport and Rulers Showcase](docs/screenshots/floria_creative_canvas.gif)
+*Infinite 2D vector workspace with native subpixel horizontal & vertical rulers (`TFtRuler`), camera zoom & pan navigation, dynamic number scrubbers (`TFtNumberScrubber`) with live mouse scrubbing and cursor cues, interactive vector shapes, and instant CSS dark mode switching.*
+
+### Hardware-Accelerated GPU Vector Core & Stress Test
+![GPU Vector Core Stress Test Showcase](docs/screenshots/floria_gpu_vector_stress_test.gif)
+*Direct EGL hardware rendering pipeline (`TFtHardwareCanvas`, GLES2 batching) managing 10,000+ interactive particles at 200+ FPS, real-time GPU tessellator for cubic Bezier ribbons, analytic antialiased polygon stars, and interactive vortex attractors.*
+
 ### Advanced Desktop Widgets
 ![Advanced Desktop Widgets Showcase](docs/screenshots/floria_desktop_widgets.gif)
 *Multi-tab Notebook with close buttons and glowing halos, dual-pane Splitters with live dragging, hierarchical TreeView with expander arrows, and multi-column Data Table with selection and zebra striping.*

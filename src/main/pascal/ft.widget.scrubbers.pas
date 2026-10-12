@@ -44,10 +44,12 @@ type
     FIsEditingText: Boolean;
     FEditText: string;
     FCaretPos: Integer;
+    FMouseX: Integer;
 
     FOnChange: TFtScrubberChangeEvent;
 
     function FormatValueString(AVal: Double): string;
+    function IsOverValueText(AX: Integer): Boolean;
     procedure CommitEditText();
     procedure CancelEditText();
   protected
@@ -63,6 +65,7 @@ type
     procedure MouseDown(AX, AY: Integer; AButton: Integer); override;
     procedure MouseMove(AX, AY: Integer); override;
     procedure MouseUp(AX, AY: Integer; AButton: Integer); override;
+    procedure MouseLeave(); override;
     procedure KeyDown(AKeySym: Cardinal; AState: Cardinal; const AChar: string); override;
     procedure LostFocus(); override;
 
@@ -108,6 +111,7 @@ begin
   FIsEditingText := False;
   FEditText := '';
   FCaretPos := 0;
+  FMouseX := -999;
   FOnChange := nil;
   FFontLabel := FtFontManager().GetFont('sans-serif,9,bold');
   FFontValue := FtFontManager().GetFont('sans-serif,9');
@@ -133,9 +137,35 @@ begin
     Result := inherited GetStatePseudoClass();
 end;
 
+function TFtNumberScrubber.IsOverValueText(AX: Integer): Boolean;
+var
+  dispStr: string;
+  valW: Double;
+  valStart: Double;
+begin
+  if not Assigned(FFontValue) then
+  begin
+    Result := (AX - X) > (Width * 0.65);
+    Exit;
+  end;
+
+  if FIsEditingText then
+    dispStr := FEditText
+  else
+    dispStr := FormatValueString(FValue);
+
+  valW := FFontValue.GetTextWidth(dispStr);
+  // Value text is right-aligned: drawn at X + Width - valW - 8.0
+  // Text edit area is strictly around the number text, keeping the label and middle body draggable
+  valStart := Width - valW - 10.0;
+  if valStart < Width * 0.60 then
+    valStart := Width * 0.60;
+  Result := (AX - X) >= valStart;
+end;
+
 function TFtNumberScrubber.GetCursor(): Integer;
 begin
-  if FIsEditingText then
+  if FIsEditingText or ((FMouseX >= X) and (FMouseX <= X + Width) and IsOverValueText(FMouseX)) then
     Result := FT_CURSOR_IBEAM
   else
     Result := FT_CURSOR_SIZE_H;
@@ -331,9 +361,9 @@ begin
 
   SetFocus();
 
-  // If clicked on the right-hand value portion, enter text edit mode!
-  // If clicked on the left label portion, enter drag scrubbing mode!
-  if (AX - X) > (Width * 0.45) then
+  // If clicked on the right-hand value text portion, enter text edit mode!
+  // If clicked on the label or draggable body, enter drag scrubbing mode!
+  if IsOverValueText(AX) then
   begin
     FIsEditingText := True;
     FEditText := FormatFloat('0.###', FValue);
@@ -358,6 +388,7 @@ var
   multiplier: Double;
   stepVal: Double;
 begin
+  FMouseX := AX;
   inherited MouseMove(AX, AY);
   if not FIsScrubbing then Exit;
 
@@ -373,6 +404,12 @@ begin
 
   stepVal := FStep * multiplier;
   SetValue(FDragStartValue + (deltaX * stepVal));
+end;
+
+procedure TFtNumberScrubber.MouseLeave();
+begin
+  inherited MouseLeave();
+  FMouseX := -999;
 end;
 
 procedure TFtNumberScrubber.MouseUp(AX, AY: Integer; AButton: Integer);
