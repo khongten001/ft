@@ -180,7 +180,7 @@ static void on_paint_canvas(FtWidget widget, FtCanvas canvas, void* user_data) {
 
     /* Shape label */
     double lbl_sx = 0.0, lbl_sy = 0.0;
-    ft_camera2d_world_to_screen(s_camera, s_shape_x + 16.0, s_shape_y + 24.0, &lbl_sx, &lbl_sy);
+    ft_camera2d_world_to_screen(s_camera, s_shape_x + 16.0, s_shape_y + 34.0, &lbl_sx, &lbl_sy);
     ft_canvas_draw_text(canvas, area_x + lbl_sx, area_y + lbl_sy, "Interactive Vector Card", NULL, 1.0, 1.0, 1.0);
 
     /* 4 Corner selection gizmo handles */

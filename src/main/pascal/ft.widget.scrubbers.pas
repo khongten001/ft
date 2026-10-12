@@ -230,6 +230,7 @@ var
   labelW: Double;
   valW: Double;
   radius: Double;
+  lblY, valY: Double;
 begin
   if not Visible or not Assigned(Canvas) then Exit;
 
@@ -277,11 +278,22 @@ begin
     fntLbl := FFontLabel;
     fntVal := FFontValue;
 
+    // Baseline Y for vertically centering single-line text
+    if Assigned(fntLbl) then
+      lblY := Y + (Height / 2.0) + (fntLbl.Ascent - fntLbl.Descent) / 2.0
+    else
+      lblY := Y + Height / 2.0;
+
+    if Assigned(fntVal) then
+      valY := Y + (Height / 2.0) + (fntVal.Ascent - fntVal.Descent) / 2.0
+    else
+      valY := Y + Height / 2.0;
+
     // 1. Draw Label text on the left
     labelW := 0.0;
     if (FLabelText <> '') and Assigned(fntLbl) then
     begin
-      Canvas.DrawText(X + 8.0, Y + (Height - fntLbl.Size * 1.3) * 0.5, FLabelText, fntLbl, lblR, lblG, lblB);
+      Canvas.DrawText(X + 8.0, lblY, FLabelText, fntLbl, lblR, lblG, lblB);
       labelW := fntLbl.GetTextWidth(FLabelText) + 12.0;
     end;
 
@@ -289,7 +301,7 @@ begin
     if FIsEditingText then
     begin
       dispStr := FEditText;
-      Canvas.DrawText(X + Max(24.0, labelW), Y + (Height - fntVal.Size * 1.3) * 0.5, dispStr, fntVal, valR, valG, valB);
+      Canvas.DrawText(X + Max(24.0, labelW), valY, dispStr, fntVal, valR, valG, valB);
       // Blinking or static caret line
       valW := fntVal.GetTextWidth(Copy(dispStr, 1, FCaretPos));
       Canvas.DrawLine(X + Max(24.0, labelW) + valW + 1.0, Y + 5.0,
@@ -303,7 +315,7 @@ begin
       begin
         valW := fntVal.GetTextWidth(dispStr);
         // Draw right-aligned or comfortably centered value
-        Canvas.DrawText(X + Width - valW - 8.0, Y + (Height - fntVal.Size * 1.3) * 0.5, dispStr, fntVal, valR, valG, valB);
+        Canvas.DrawText(X + Width - valW - 8.0, valY, dispStr, fntVal, valR, valG, valB);
       end;
     end;
 
