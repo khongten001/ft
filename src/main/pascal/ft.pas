@@ -86,6 +86,7 @@ procedure ft_init(); cdecl; export;
 var
   env: string;
 begin
+  SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
   FtBackendInit();
   env := LowerCase(GetEnvironmentVariable('FT_RENDERER'));
   if env = 'software' then
@@ -6968,4 +6969,5 @@ exports
   ft_camera2d_set_rotation;
 
 begin
+  SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
 end.
