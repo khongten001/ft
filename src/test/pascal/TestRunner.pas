@@ -54,6 +54,7 @@ type
     procedure TestFormGrid();
     procedure TestSizeGroup();
     procedure TestFlexboxCrushAndRecovery();
+    procedure TestFloatingBarAnchoringAndReflow();
   end;
 
   TFtIconsTest = class(TTestCase)
@@ -3288,6 +3289,71 @@ begin
     end;
   finally
     vbox.Free();
+  end;
+end;
+
+procedure TFtLayoutsTest.TestFloatingBarAnchoringAndReflow();
+var
+  win: TFtWindow;
+  topPill: TFtFloatingBar;
+  bottomBar: TFtFloatingBar;
+  btn1, btn2: TFtButton;
+begin
+  win := TFtWindow.Create(800, 600, 'FloatingTestWin');
+  try
+    // Top floating capsule
+    topPill := TFtFloatingBar.Create(win);
+    topPill.AnchorMode := ftamTopCenter;
+    topPill.MarginY := 20.0;
+    topPill.SetBounds(0, 0, 400, 44);
+    topPill.UpdateAnchor();
+
+    btn1 := TFtButton.Create(topPill);
+    btn1.SetBounds(0, 0, 80, 28);
+
+    // Bottom floating capsule
+    bottomBar := TFtFloatingBar.Create(win);
+    bottomBar.AnchorMode := ftamBottomCenter;
+    bottomBar.MarginY := 24.0;
+    bottomBar.SetBounds(0, 0, 360, 48);
+    bottomBar.UpdateAnchor();
+
+    btn2 := TFtButton.Create(bottomBar);
+    btn2.SetBounds(0, 0, 90, 32);
+
+    // Assert initial layout
+    // topPill: X = (800 - 400) / 2 = 200, Y = 20
+    AssertEquals('Top pill X', 200, topPill.X);
+    AssertEquals('Top pill Y', 20, topPill.Y);
+    AssertEquals('Top pill Width', 400, topPill.Width);
+    AssertEquals('Top pill Height', 44, topPill.Height);
+    AssertEquals('Top pill CornerRadius clamped to half height', 22.0, topPill.GetEffectiveCornerRadius(), 0.01);
+
+    // bottomBar: X = (800 - 360) / 2 = 220, Y = 600 - 48 - 24 = 528
+    AssertEquals('Bottom bar X', 220, bottomBar.X);
+    AssertEquals('Bottom bar Y', 528, bottomBar.Y);
+
+    // Resize window to 1000x800
+    win.Resize(1000, 800, False);
+
+    // Assert auto-reflow / re-centering on resize!
+    // topPill: X = (1000 - 400) / 2 = 300, Y = 20
+    AssertEquals('Resized Top pill X', 300, topPill.X);
+    AssertEquals('Resized Top pill Y', 20, topPill.Y);
+
+    // bottomBar: X = (1000 - 360) / 2 = 320, Y = 800 - 48 - 24 = 728
+    AssertEquals('Resized Bottom bar X', 320, bottomBar.X);
+    AssertEquals('Resized Bottom bar Y', 728, bottomBar.Y);
+
+    // Test anchor mode change
+    topPill.AnchorMode := ftamTopRight;
+    topPill.MarginX := 30.0;
+    topPill.UpdateAnchor();
+    // X = 1000 - 400 - 30 = 570, Y = 20
+    AssertEquals('TopRight X', 570, topPill.X);
+    AssertEquals('TopRight Y', 20, topPill.Y);
+  finally
+    win.Free();
   end;
 end;
 

@@ -7,8 +7,9 @@
       <Unit>
         <Filename Value="ft.pas"/>
         <IsPartOfProject Value="True"/>
-        <TopLine Value="162"/>
-        <CursorPos X="55" Y="162"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="1096"/>
+        <CursorPos X="76" Y="1105"/>
         <UsageCount Value="330"/>
         <Loaded Value="True"/>
       </Unit>
@@ -51,9 +52,8 @@
         <Filename Value="ft.theme.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Ft.Theme"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="8"/>
-        <TopLine Value="144"/>
+        <TopLine Value="235"/>
         <CursorPos X="64" Y="223"/>
         <UsageCount Value="329"/>
         <Loaded Value="True"/>
@@ -155,7 +155,7 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="Ft.Backend.EGL"/>
         <EditorIndex Value="3"/>
-        <TopLine Value="26"/>
+        <TopLine Value="75"/>
         <CursorPos X="18" Y="35"/>
         <UsageCount Value="212"/>
         <Loaded Value="True"/>
@@ -175,14 +175,14 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="18"/>
         <CursorPos X="195" Y="29"/>
-        <UsageCount Value="21"/>
+        <UsageCount Value="16"/>
       </Unit>
       <Unit>
         <Filename Value="../../../../florialib/src/main/pascal/Floria.XCB.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="170"/>
         <CursorPos X="62" Y="184"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="6"/>
       </Unit>
       <Unit>
         <Filename Value="../../../../florialib/src/main/pascal/floria.egl.pas"/>
@@ -198,14 +198,14 @@
         <UnitName Value="Floria.XCB.WM"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="27"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="6"/>
       </Unit>
       <Unit>
         <Filename Value="../../../../florialib/src/main/pascal/floria.xcb.wm.compositor.pas"/>
         <UnitName Value="Floria.XCB.WM.Compositor"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="768"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="6"/>
       </Unit>
       <Unit>
         <Filename Value="../../../../florialib/src/main/pascal/floria.gl.pas"/>
@@ -228,7 +228,7 @@
         <EditorIndex Value="6"/>
         <TopLine Value="111"/>
         <CursorPos X="47" Y="116"/>
-        <UsageCount Value="75"/>
+        <UsageCount Value="98"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -236,7 +236,7 @@
         <UnitName Value="Floria.Font"/>
         <EditorIndex Value="7"/>
         <TopLine Value="771"/>
-        <UsageCount Value="75"/>
+        <UsageCount Value="98"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -244,7 +244,7 @@
         <UnitName Value="Floria.Canvas"/>
         <EditorIndex Value="5"/>
         <TopLine Value="122"/>
-        <UsageCount Value="75"/>
+        <UsageCount Value="98"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -253,7 +253,7 @@
         <EditorIndex Value="10"/>
         <TopLine Value="1514"/>
         <CursorPos X="31" Y="8"/>
-        <UsageCount Value="75"/>
+        <UsageCount Value="98"/>
         <Loaded Value="True"/>
       </Unit>
     </Units>

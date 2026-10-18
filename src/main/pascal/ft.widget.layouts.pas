@@ -109,6 +109,44 @@ type
     function GetElementType(): string; override;
   end;
 
+  { TFtAnchorMode — Anchoring positions for floating overlay bars and widgets }
+  TFtAnchorMode = (
+    ftamTopCenter = 0,
+    ftamBottomCenter = 1,
+    ftamTopLeft = 2,
+    ftamTopRight = 3,
+    ftamBottomLeft = 4,
+    ftamBottomRight = 5,
+    ftamCenter = 6
+  );
+
+  { TFtFloatingBar — Floating navigation / HUD capsule with reactive anchoring and acrylic frosted styling }
+  TFtFloatingBar = class(TFtHBox)
+  protected
+    FAnchorMode: TFtAnchorMode;
+    FMarginX: Double;
+    FMarginY: Double;
+    FAutoAnchor: Boolean;
+    FEnableShadow: Boolean;
+    procedure SetAnchorMode(AValue: TFtAnchorMode); virtual;
+    procedure SetMarginX(AValue: Double); virtual;
+    procedure SetMarginY(AValue: Double); virtual;
+    procedure SetAutoAnchor(AValue: Boolean); virtual;
+  public
+    constructor Create(AParent: TFtWidget); override;
+    function GetElementType(): string; override;
+    function GetEffectiveCornerRadius(): Double; override;
+    procedure DrawBackground(Canvas: TFtCanvas); override;
+    procedure UpdateAnchor(); virtual;
+    procedure UpdateLayout(); override;
+
+    property AnchorMode: TFtAnchorMode read FAnchorMode write SetAnchorMode;
+    property MarginX: Double read FMarginX write SetMarginX;
+    property MarginY: Double read FMarginY write SetMarginY;
+    property AutoAnchor: Boolean read FAutoAnchor write SetAutoAnchor;
+    property EnableShadow: Boolean read FEnableShadow write FEnableShadow;
+  end;
+
   { ── 2D Grid Layout Track Definitions ── }
   TFtGridTrackSize = (
     gtsAuto = 0,    { Size to maximum preferred width/height of children }
@@ -265,6 +303,7 @@ end;
 function TFtFlexBox.GetEffectiveCornerRadius(): Double;
 var
   st: TFtWidgetStyle;
+  maxR: Double;
 begin
   if FCornerRadius >= 0.0 then
     Result := FCornerRadius
@@ -275,6 +314,12 @@ begin
       Result := st.BorderRadius
     else
       Result := 0.0;
+  end;
+  if (Height > 0) and (Width > 0) then
+  begin
+    maxR := Math.Min(Width * 0.5, Height * 0.5);
+    if Result > maxR then
+      Result := maxR;
   end;
 end;
 
@@ -847,6 +892,187 @@ end;
 function TFtVBox.GetElementType(): string;
 begin
   Result := 'vbox';
+end;
+
+{ TFtFloatingBar }
+
+constructor TFtFloatingBar.Create(AParent: TFtWidget);
+begin
+  inherited Create(AParent);
+  FDirection := ftfdRow;
+  FAlignItems := ftaiCenter;
+  FJustifyContent := ftjcStart;
+  FAnchorMode := ftamTopCenter;
+  FMarginX := 16.0;
+  FMarginY := 16.0;
+  FAutoAnchor := True;
+  FPaddingX := 16.0;
+  FPaddingY := 6.0;
+  FGap := 8.0;
+  FCornerRadius := 9999.0;
+  FBackdropBlur := 16.0;
+  FEnableShadow := True;
+  Width := 420;
+  Height := 48;
+  UpdateAnchor();
+end;
+
+function TFtFloatingBar.GetElementType(): string;
+begin
+  Result := 'floatingbar';
+end;
+
+function TFtFloatingBar.GetEffectiveCornerRadius(): Double;
+var
+  maxR: Double;
+begin
+  Result := inherited GetEffectiveCornerRadius();
+  maxR := Height * 0.5;
+  if Result > maxR then
+    Result := maxR;
+end;
+
+procedure TFtFloatingBar.SetAnchorMode(AValue: TFtAnchorMode);
+begin
+  if FAnchorMode <> AValue then
+  begin
+    FAnchorMode := AValue;
+    UpdateAnchor();
+  end;
+end;
+
+procedure TFtFloatingBar.SetMarginX(AValue: Double);
+begin
+  if FMarginX <> AValue then
+  begin
+    FMarginX := AValue;
+    UpdateAnchor();
+  end;
+end;
+
+procedure TFtFloatingBar.SetMarginY(AValue: Double);
+begin
+  if FMarginY <> AValue then
+  begin
+    FMarginY := AValue;
+    UpdateAnchor();
+  end;
+end;
+
+procedure TFtFloatingBar.SetAutoAnchor(AValue: Boolean);
+begin
+  if FAutoAnchor <> AValue then
+  begin
+    FAutoAnchor := AValue;
+    if FAutoAnchor then
+      UpdateAnchor();
+  end;
+end;
+
+procedure TFtFloatingBar.UpdateAnchor();
+var
+  pW, pH: Integer;
+  newX, newY: Integer;
+begin
+  if not FAutoAnchor or not Assigned(Parent) then Exit;
+  pW := Parent.Width;
+  pH := Parent.Height;
+  if (pW <= 0) or (pH <= 0) then Exit;
+
+  newX := X;
+  newY := Y;
+
+  case FAnchorMode of
+    ftamTopCenter:
+    begin
+      newX := (pW - Width) div 2;
+      newY := Round(FMarginY);
+    end;
+    ftamBottomCenter:
+    begin
+      newX := (pW - Width) div 2;
+      newY := pH - Height - Round(FMarginY);
+    end;
+    ftamTopLeft:
+    begin
+      newX := Round(FMarginX);
+      newY := Round(FMarginY);
+    end;
+    ftamTopRight:
+    begin
+      newX := pW - Width - Round(FMarginX);
+      newY := Round(FMarginY);
+    end;
+    ftamBottomLeft:
+    begin
+      newX := Round(FMarginX);
+      newY := pH - Height - Round(FMarginY);
+    end;
+    ftamBottomRight:
+    begin
+      newX := pW - Width - Round(FMarginX);
+      newY := pH - Height - Round(FMarginY);
+    end;
+    ftamCenter:
+    begin
+      newX := (pW - Width) div 2;
+      newY := (pH - Height) div 2;
+    end;
+  end;
+
+  if (X <> newX) or (Y <> newY) then
+  begin
+    X := newX;
+    Y := newY;
+    Invalidate();
+  end;
+end;
+
+procedure TFtFloatingBar.UpdateLayout();
+begin
+  UpdateAnchor();
+  inherited UpdateLayout();
+end;
+
+procedure TFtFloatingBar.DrawBackground(Canvas: TFtCanvas);
+var
+  st: TFtWidgetStyle;
+  rad, effBlur: Double;
+  isDark: Boolean;
+begin
+  st := GetResolvedStyle();
+  if st.HasBgColor or st.HasBorderColor or st.HasBorderRadius then
+  begin
+    inherited DrawBackground(Canvas);
+    Exit;
+  end;
+
+  rad := GetEffectiveCornerRadius();
+  if rad <= 0.0 then rad := Height * 0.5;
+
+  // 1. Drop shadow elevation
+  if (st.HasShadow and st.EnableShadow) or (not st.HasShadow and FEnableShadow) then
+    Canvas.DrawShadow(X, Y, Width, Height, rad, 0.0, 3.0, 10.0, 0.0, 0.0, 0.0, 0.16);
+
+  // 2. Backdrop blur (frosted glass / acrylic)
+  effBlur := FBackdropBlur;
+  if st.HasBackdropBlur and (st.BackdropBlur > 0.5) then
+    effBlur := st.BackdropBlur;
+  if effBlur > 0.5 then
+    Canvas.BlurRoundedRect(X, Y, Width, Height, rad, effBlur);
+
+  // 3. Translucent body tint & modern border outline
+  isDark := FtGetTheme().DarkMode;
+  if isDark then
+  begin
+    Canvas.DrawRoundedRect(X, Y, Width, Height, rad, 0.12, 0.16, 0.23, 0.84);
+    Canvas.DrawRoundedRectOutline(X, Y, Width, Height, rad, 1.0, 1.0, 1.0, 1.0, 0.14);
+  end
+  else
+  begin
+    Canvas.DrawRoundedRect(X, Y, Width, Height, rad, 1.0, 1.0, 1.0, 0.84);
+    Canvas.DrawRoundedRectOutline(X, Y, Width, Height, rad, 1.0, 1.0, 1.0, 1.0, 0.45);
+  end;
 end;
 
 { ── Track Template Parser ── }

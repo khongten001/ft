@@ -80,6 +80,8 @@ void ft_window_grab_input(FtWidget window);
 void ft_window_ungrab_input(FtWidget window);
 void* ft_window_get_native_handle(FtWidget window);
 void ft_window_set_layout(FtWidget window, FtWidget layout);
+typedef int32_t (*FtWindowCloseCallback)(FtWidget window, void* user_data);
+void ft_window_on_close(FtWidget window, FtWindowCloseCallback callback, void* user_data);
 
 /* Hardware Acceleration & EGL Backend */
 int32_t ft_egl_is_available(void);
@@ -114,6 +116,9 @@ int32_t ft_widget_get_y(FtWidget widget);
 int32_t ft_widget_get_width(FtWidget widget);
 int32_t ft_widget_get_height(FtWidget widget);
 void ft_widget_destroy(FtWidget widget);
+int32_t ft_widget_is_valid(FtWidget widget);
+typedef void (*FtDestroyCallback)(FtWidget widget, void* user_data);
+void ft_widget_on_destroy(FtWidget widget, FtDestroyCallback callback, void* user_data);
 
 /* Micro-Flexbox Child Properties & Alignments */
 typedef enum {
@@ -489,6 +494,27 @@ FtWidget ft_hbox_create(FtWidget parent, int32_t x, int32_t y, int32_t w, int32_
 FtWidget ft_vbox_create(FtWidget parent, int32_t x, int32_t y, int32_t w, int32_t h);
 FtWidget ft_spacer_create(FtWidget parent);
 
+/* Anchor Modes for Floating Widgets */
+typedef enum {
+    FT_ANCHOR_TOP_CENTER    = 0,
+    FT_ANCHOR_BOTTOM_CENTER = 1,
+    FT_ANCHOR_TOP_LEFT      = 2,
+    FT_ANCHOR_TOP_RIGHT     = 3,
+    FT_ANCHOR_BOTTOM_LEFT   = 4,
+    FT_ANCHOR_BOTTOM_RIGHT  = 5,
+    FT_ANCHOR_CENTER        = 6
+} FtAnchorMode;
+
+/* Floating Navigation Bar / HUD Container */
+FtWidget ft_floating_bar_create(FtWidget parent, int32_t anchor_mode, int32_t width, int32_t height);
+void     ft_floating_bar_set_anchor(FtWidget bar, int32_t anchor_mode);
+int32_t  ft_floating_bar_get_anchor(FtWidget bar);
+void     ft_floating_bar_set_margins(FtWidget bar, double margin_x, double margin_y);
+void     ft_floating_bar_get_margins(FtWidget bar, double* margin_x, double* margin_y);
+void     ft_floating_bar_set_auto_anchor(FtWidget bar, int32_t auto_anchor);
+int32_t  ft_floating_bar_get_auto_anchor(FtWidget bar);
+void     ft_floating_bar_update_anchor(FtWidget bar);
+
 void ft_flexbox_set_direction(FtWidget flexbox, int32_t direction);
 int32_t ft_flexbox_get_direction(FtWidget flexbox);
 void ft_flexbox_set_wrap(FtWidget flexbox, int32_t wrap);
@@ -811,6 +837,13 @@ void ft_canvas_draw_circle(void* canvas, double cx, double cy, double radius, do
 void ft_canvas_draw_text(void* canvas, double x, double y, const char* text, void* font, double r, double g, double b);
 void ft_canvas_draw_text_left(void* canvas, double x, double y, double w, double h, const char* text, void* font, double r, double g, double b);
 void ft_canvas_draw_text_centered(void* canvas, int32_t x, int32_t y, int32_t w, int32_t h, const char* text, void* font, double r, double g, double b);
+
+/* Canvas Clipping Stack */
+void ft_canvas_push_clip_rect(void* canvas, int32_t x, int32_t y, int32_t w, int32_t h);
+void ft_canvas_pop_clip_rect(void* canvas);
+void ft_canvas_push_clip_rounded_rect(void* canvas, double x, double y, double w, double h, double radius);
+void ft_canvas_pop_clip_rounded_rect(void* canvas);
+void ft_canvas_reset_clipping(void* canvas);
 
 /* ========================================================================= */
 /* Tabs & Notebook Container                                                 */
@@ -1205,12 +1238,14 @@ typedef struct {
 typedef void (*FtWindowMouseCallback)(FtWidget window, int32_t x, int32_t y, int32_t button, void* user_data);
 typedef void (*FtWindowMouseMoveCallback)(FtWidget window, int32_t x, int32_t y, void* user_data);
 typedef void (*FtWindowKeyCallback)(FtWidget window, uint32_t key, int32_t is_down, void* user_data);
+typedef void (*FtWindowResizeCallback)(FtWidget window, int32_t new_width, int32_t new_height, void* user_data);
 
 void ft_window_set_direct_gpu_mode(FtWidget window, int32_t direct_gpu);
 void ft_window_on_mouse_down(FtWidget window, FtWindowMouseCallback callback, void* user_data);
 void ft_window_on_mouse_up(FtWidget window, FtWindowMouseCallback callback, void* user_data);
 void ft_window_on_mouse_move(FtWidget window, FtWindowMouseMoveCallback callback, void* user_data);
 void ft_window_on_key(FtWidget window, FtWindowKeyCallback callback, void* user_data);
+void ft_window_on_resize(FtWidget window, FtWindowResizeCallback callback, void* user_data);
 
 /* Global GPU Status */
 int32_t ft_gpu_is_available(void);

@@ -67,6 +67,8 @@ type
     procedure InvalidateStyle(); override;
 
     procedure Draw(Canvas: TFtCanvas); override;
+    procedure SetBounds(AX, AY, AW, AH: Integer); override;
+    procedure UpdateLayout(); override;
     function HitTest(AX, AY: Integer): TFtWidget; override;
     procedure MouseDown(AX, AY: Integer; AButton: Integer); override;
     procedure InvalidateRect(AX, AY, AW, AH: Integer); override;
@@ -540,6 +542,7 @@ end;
 function TFtContainer.GetEffectiveCornerRadius(): Double;
 var
   st: TFtWidgetStyle;
+  maxR: Double;
 begin
   if FCornerRadius >= 0.0 then
     Result := FCornerRadius
@@ -550,6 +553,12 @@ begin
       Result := st.BorderRadius
     else
       Result := FtGetTheme().CornerRadius;
+  end;
+  if (Height > 0) and (Width > 0) then
+  begin
+    maxR := Math.Min(Width * 0.5, Height * 0.5);
+    if Result > maxR then
+      Result := maxR;
   end;
 end;
 
@@ -709,6 +718,32 @@ begin
       FHScrollBar.Value := FScrollX;
     FHScrollBar.Step := 25.0;
   end;
+end;
+
+procedure TFtContainer.SetBounds(AX, AY, AW, AH: Integer);
+var
+  dx, dy, i: Integer;
+  child: TFtWidget;
+begin
+  dx := AX - X;
+  dy := AY - Y;
+  inherited SetBounds(AX, AY, AW, AH);
+  if ((dx <> 0) or (dy <> 0)) and Assigned(Children) then
+  begin
+    for i := 0 to Children.Count - 1 do
+    begin
+      child := TFtWidget(Children[i]);
+      if (child <> FVScrollBar) and (child <> FHScrollBar) then
+        child.SetBounds(child.X + dx, child.Y + dy, child.Width, child.Height);
+    end;
+  end;
+  UpdateScrollBars();
+end;
+
+procedure TFtContainer.UpdateLayout();
+begin
+  inherited UpdateLayout();
+  UpdateScrollBars();
 end;
 
 procedure TFtContainer.DrawBackground(Canvas: TFtCanvas);

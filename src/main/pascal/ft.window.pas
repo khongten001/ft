@@ -5,7 +5,7 @@ unit Ft.Window;
 interface
 
 uses
-  SysUtils, Classes, Types,
+  SysUtils, Classes, Types, ctypes,
   Floria.Canvas.Agg, Ft.Canvas, Ft.Widget, Ft.Theme, Ft.Css;
 
 type
@@ -36,6 +36,8 @@ type
   TFtWindowMouseCallback = procedure(AWindow: Pointer; AX, AY: Integer; AButton: Integer; AUserData: Pointer); cdecl;
   TFtWindowMouseMoveCallback = procedure(AWindow: Pointer; AX, AY: Integer; AUserData: Pointer); cdecl;
   TFtWindowKeyCallback = procedure(AWindow: Pointer; AKeySym: Cardinal; AIsDown: Integer; AUserData: Pointer); cdecl;
+  TFtWindowResizeCallback = procedure(AWindow: Pointer; AWidth, AHeight: Integer; AUserData: Pointer); cdecl;
+  TFtWindowCloseCallback = function(AWindow: Pointer; AUserData: Pointer): cint32; cdecl;
 
   TFtWindow = class(TFtWidget)
   protected
@@ -68,7 +70,10 @@ type
     FOnMouseUp: TFtWindowMouseCallback;
     FOnMouseMove: TFtWindowMouseMoveCallback;
     FOnKey: TFtWindowKeyCallback;
+    FOnWindowResize: TFtWindowResizeCallback;
     FWindowUserData: Pointer;
+    FOnCloseCallback: TFtWindowCloseCallback;
+    FOnCloseUserData: Pointer;
 
     procedure OnThemeChanged(); virtual;
     procedure OnStyleSheetChanged(); virtual;
@@ -165,7 +170,10 @@ type
     property OnWindowMouseUp: TFtWindowMouseCallback read FOnMouseUp write FOnMouseUp;
     property OnWindowMouseMove: TFtWindowMouseMoveCallback read FOnMouseMove write FOnMouseMove;
     property OnWindowKey: TFtWindowKeyCallback read FOnKey write FOnKey;
+    property OnWindowResize: TFtWindowResizeCallback read FOnWindowResize write FOnWindowResize;
     property WindowUserData: Pointer read FWindowUserData write FWindowUserData;
+    property OnCloseCallback: TFtWindowCloseCallback read FOnCloseCallback write FOnCloseCallback;
+    property OnCloseUserData: Pointer read FOnCloseUserData write FOnCloseUserData;
   end;
 
   TFtWindowClass = class of TFtWindow;
@@ -304,7 +312,10 @@ begin
   FOnMouseUp := nil;
   FOnMouseMove := nil;
   FOnKey := nil;
+  FOnWindowResize := nil;
   FWindowUserData := nil;
+  FOnCloseCallback := nil;
+  FOnCloseUserData := nil;
 
   if (Width > 0) and (Height > 0) then
   begin
@@ -395,7 +406,15 @@ begin
 end;
 
 procedure TFtWindow.Show();
+var
+  i: Integer;
 begin
+  if Assigned(FRootLayout) then
+    FRootLayout.UpdateLayout();
+  if Assigned(Children) then
+    for i := 0 to Children.Count - 1 do
+      if TFtWidget(Children[i]) <> FRootLayout then
+        TFtWidget(Children[i]).UpdateLayout();
   Visible := True;
   Invalidate();
 end;
@@ -489,6 +508,8 @@ begin
 end;
 
 procedure TFtWindow.Resize(NewW, NewH: Integer; AApplyToBackend: Boolean = True);
+var
+  i: Integer;
 begin
   if (NewW <= 0) or (NewH <= 0) then Exit;
   if (Width = NewW) and (Height = NewH) then Exit;
@@ -516,8 +537,15 @@ begin
     FRootLayout.UpdateLayout();
   end;
 
+  if Assigned(Children) then
+    for i := 0 to Children.Count - 1 do
+      if TFtWidget(Children[i]) <> FRootLayout then
+        TFtWidget(Children[i]).UpdateLayout();
+
   if Assigned(FOnResize) then
     FOnResize(Self, Width, Height);
+  if Assigned(FOnWindowResize) then
+    FOnWindowResize(Pointer(Self), Width, Height, FWindowUserData);
 
   Invalidate();
 end;

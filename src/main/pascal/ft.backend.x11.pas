@@ -132,6 +132,7 @@ procedure FtBackendInit();
 procedure FtBackendMainLoop();
 procedure FtBackendProcessEvents();
 procedure FtBackendQuit();
+procedure FtBackendCleanup();
 procedure FtGrabMenuInput(AWindow: TFtWindow);
 procedure FtUngrabMenuInput(AWindow: TFtWindow);
 function FindWindowByHandle(AWindow: xcb_window_t): TFtX11Window;
@@ -292,6 +293,12 @@ var
   setup: Pxcb_setup_t;
   iter: xcb_screen_iterator_t;
 begin
+  if Assigned(GConnection) then
+  begin
+    GRunning := True;
+    Exit;
+  end;
+
   GConnection := xcb_connect(nil, @screenIdx);
   if (GConnection = nil) or (xcb_connection_has_error(GConnection) > 0) then
     raise Exception.Create('Floria Toolkit: Unable to connect to XCB display.');
@@ -679,6 +686,12 @@ begin
         Sleep(10);
     end;
   end;
+end;
+
+procedure FtBackendCleanup();
+begin
+  if Assigned(GHintWindow) then
+    FreeAndNil(GHintWindow);
 
   if Assigned(GCursorContext) then
   begin
@@ -1245,17 +1258,17 @@ begin
     FScratchBufferSize := 0;
   end;
 
-  if (FGC <> 0) and Assigned(FConnection) then
+  if (FGC <> 0) and Assigned(GConnection) and (FConnection = GConnection) then
   begin
     xcb_free_gc(FConnection, FGC);
     FGC := 0;
   end;
-  if (FColormap <> 0) and (FDepth = 32) and Assigned(FConnection) then
+  if (FColormap <> 0) and (FDepth = 32) and Assigned(GConnection) and (FConnection = GConnection) then
   begin
     xcb_free_colormap(FConnection, FColormap);
     FColormap := 0;
   end;
-  if (FWindow <> 0) and Assigned(FConnection) then
+  if (FWindow <> 0) and Assigned(GConnection) and (FConnection = GConnection) then
   begin
     xcb_destroy_window(FConnection, FWindow);
     FWindow := 0;
@@ -2124,6 +2137,12 @@ begin
       cm := Pxcb_client_message_event_t(Event);
       if (cm^.format = 32) and (PCardinal(@cm^.data.raw[0])^ = atomWMDeleteWindow) then
       begin
+        if Assigned(FOnCloseCallback) then
+        begin
+          if FOnCloseCallback(Self, FOnCloseUserData) = 0 then
+            Exit;
+        end;
+
         if FWindowType in [ftwtNormal, ftwtDialog] then
         begin
           if FIsModal then
@@ -2411,7 +2430,6 @@ initialization
   GIsWindowResizingFunc := @X11IsWindowResizing;
 
 finalization
-  if Assigned(GHintWindow) then
-    FreeAndNil(GHintWindow);
+  FtBackendCleanup();
 
 end.

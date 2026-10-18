@@ -227,6 +227,24 @@ begin
   end;
 end;
 
+procedure ft_window_on_resize(window: Pointer; callback: TFtWindowResizeCallback; user_data: Pointer); cdecl; export;
+begin
+  if Assigned(window) and (TObject(window) is TFtWindow) then
+  begin
+    TFtWindow(window).OnWindowResize := callback;
+    TFtWindow(window).WindowUserData := user_data;
+  end;
+end;
+
+procedure ft_window_on_close(window: Pointer; callback: TFtWindowCloseCallback; user_data: Pointer); cdecl; export;
+begin
+  if FtIsValidWidget(window) and (TObject(window) is TFtWindow) then
+  begin
+    TFtWindow(window).OnCloseCallback := callback;
+    TFtWindow(window).OnCloseUserData := user_data;
+  end;
+end;
+
 procedure ft_widget_invalidate(widget: Pointer); cdecl; export;
 begin
   if Assigned(widget) then
@@ -487,10 +505,27 @@ end;
 
 procedure ft_widget_destroy(widget: Pointer); cdecl; export;
 begin
-  if Assigned(widget) and (TObject(widget) is TFtWidget) then
+  if FtIsValidWidget(widget) then
   begin
     TFtWidget(widget).Invalidate();
     TFtWidget(widget).Free();
+  end;
+end;
+
+function ft_widget_is_valid(widget: Pointer): cint32; cdecl; export;
+begin
+  if FtIsValidWidget(widget) then
+    Result := 1
+  else
+    Result := 0;
+end;
+
+procedure ft_widget_on_destroy(widget: Pointer; callback: TFtDestroyCallback; user_data: Pointer); cdecl; export;
+begin
+  if FtIsValidWidget(widget) then
+  begin
+    TFtWidget(widget).DestroyCallback := callback;
+    TFtWidget(widget).DestroyUserData := user_data;
   end;
 end;
 
@@ -1149,6 +1184,10 @@ begin
     strText := '';
   AdjustChildCoordinates(parent, x, y);
   Result := Pointer(TFtText.Create(TFtWidget(parent), strText));
+  if (w <= 0) and Assigned(Result) then
+    w := TFtText(Result).GetPreferredWidth();
+  if (h <= 0) and Assigned(Result) then
+    h := TFtText(Result).GetPreferredHeight();
   TFtWidget(Result).SetBounds(x, y, w, h);
   if w > 0 then TFtWidget(Result).PreferredWidth := w;
   if h > 0 then TFtWidget(Result).PreferredHeight := h;
@@ -2263,6 +2302,7 @@ function ft_flexbox_create(parent: Pointer; x, y, w, h: cint32; direction: cint3
 var
   fb: TFtFlexBox;
 begin
+  AdjustChildCoordinates(parent, x, y);
   fb := TFtFlexBox.Create(TFtWidget(parent));
   fb.SetBounds(x, y, w, h);
   if direction = 1 then
@@ -2276,6 +2316,7 @@ function ft_hbox_create(parent: Pointer; x, y, w, h: cint32): Pointer; cdecl; ex
 var
   hb: TFtHBox;
 begin
+  AdjustChildCoordinates(parent, x, y);
   hb := TFtHBox.Create(TFtWidget(parent));
   hb.SetBounds(x, y, w, h);
   Result := hb;
@@ -2285,9 +2326,73 @@ function ft_vbox_create(parent: Pointer; x, y, w, h: cint32): Pointer; cdecl; ex
 var
   vb: TFtVBox;
 begin
+  AdjustChildCoordinates(parent, x, y);
   vb := TFtVBox.Create(TFtWidget(parent));
   vb.SetBounds(x, y, w, h);
   Result := vb;
+end;
+
+function ft_floating_bar_create(parent: Pointer; anchor_mode: cint32; w, h: cint32): Pointer; cdecl; export;
+var
+  fb: TFtFloatingBar;
+begin
+  fb := TFtFloatingBar.Create(TFtWidget(parent));
+  if (anchor_mode >= 0) and (anchor_mode <= Ord(High(TFtAnchorMode))) then
+    fb.AnchorMode := TFtAnchorMode(anchor_mode);
+  fb.SetBounds(fb.X, fb.Y, w, h);
+  fb.UpdateAnchor();
+  Result := fb;
+end;
+
+procedure ft_floating_bar_set_anchor(bar: Pointer; anchor_mode: cint32); cdecl; export;
+begin
+  if Assigned(bar) and (TObject(bar) is TFtFloatingBar) then
+    if (anchor_mode >= 0) and (anchor_mode <= Ord(High(TFtAnchorMode))) then
+      TFtFloatingBar(bar).AnchorMode := TFtAnchorMode(anchor_mode);
+end;
+
+function ft_floating_bar_get_anchor(bar: Pointer): cint32; cdecl; export;
+begin
+  Result := 0;
+  if Assigned(bar) and (TObject(bar) is TFtFloatingBar) then
+    Result := Ord(TFtFloatingBar(bar).AnchorMode);
+end;
+
+procedure ft_floating_bar_set_margins(bar: Pointer; margin_x, margin_y: Double); cdecl; export;
+begin
+  if Assigned(bar) and (TObject(bar) is TFtFloatingBar) then
+  begin
+    TFtFloatingBar(bar).MarginX := margin_x;
+    TFtFloatingBar(bar).MarginY := margin_y;
+  end;
+end;
+
+procedure ft_floating_bar_get_margins(bar: Pointer; margin_x, margin_y: PDouble); cdecl; export;
+begin
+  if Assigned(bar) and (TObject(bar) is TFtFloatingBar) then
+  begin
+    if Assigned(margin_x) then margin_x^ := TFtFloatingBar(bar).MarginX;
+    if Assigned(margin_y) then margin_y^ := TFtFloatingBar(bar).MarginY;
+  end;
+end;
+
+procedure ft_floating_bar_set_auto_anchor(bar: Pointer; auto_anchor: cint32); cdecl; export;
+begin
+  if Assigned(bar) and (TObject(bar) is TFtFloatingBar) then
+    TFtFloatingBar(bar).AutoAnchor := (auto_anchor <> 0);
+end;
+
+function ft_floating_bar_get_auto_anchor(bar: Pointer): cint32; cdecl; export;
+begin
+  Result := 0;
+  if Assigned(bar) and (TObject(bar) is TFtFloatingBar) then
+    if TFtFloatingBar(bar).AutoAnchor then Result := 1;
+end;
+
+procedure ft_floating_bar_update_anchor(bar: Pointer); cdecl; export;
+begin
+  if Assigned(bar) and (TObject(bar) is TFtFloatingBar) then
+    TFtFloatingBar(bar).UpdateAnchor();
 end;
 
 function ft_spacer_create(parent: Pointer): Pointer; cdecl; export;
@@ -2502,6 +2607,7 @@ function ft_grid_create(parent: Pointer; x, y, w, h: cint32): Pointer; cdecl; ex
 var
   grid: TFtGrid;
 begin
+  AdjustChildCoordinates(parent, x, y);
   grid := TFtGrid.Create(TFtWidget(parent));
   grid.SetBounds(x, y, w, h);
   Result := grid;
@@ -2607,6 +2713,7 @@ function ft_form_grid_create(parent: Pointer; x, y, w, h: cint32): Pointer; cdec
 var
   fg: TFtFormGrid;
 begin
+  AdjustChildCoordinates(parent, x, y);
   fg := TFtFormGrid.Create(TFtWidget(parent));
   fg.SetBounds(x, y, w, h);
   Result := fg;
@@ -4199,6 +4306,36 @@ begin
     if Assigned(AFont) and (TObject(AFont) is TFtFont) then f := TFtFont(AFont) else f := FtGetSystemFont();
     TFtCanvas(ACanvas).DrawTextCentered(AX, AY, AW, AH, string(AText), f, AR, AG, AB);
   end;
+end;
+
+procedure ft_canvas_push_clip_rect(ACanvas: Pointer; AX, AY, AW, AH: cint32); cdecl; export;
+begin
+  if Assigned(ACanvas) and (TObject(ACanvas) is TFtCanvas) then
+    TFtCanvas(ACanvas).PushClipRect(AX, AY, AW, AH);
+end;
+
+procedure ft_canvas_pop_clip_rect(ACanvas: Pointer); cdecl; export;
+begin
+  if Assigned(ACanvas) and (TObject(ACanvas) is TFtCanvas) then
+    TFtCanvas(ACanvas).PopClipRect();
+end;
+
+procedure ft_canvas_push_clip_rounded_rect(ACanvas: Pointer; AX, AY, AW, AH, ARadius: cdouble); cdecl; export;
+begin
+  if Assigned(ACanvas) and (TObject(ACanvas) is TFtCanvas) then
+    TFtCanvas(ACanvas).PushClipRoundedRect(AX, AY, AW, AH, ARadius);
+end;
+
+procedure ft_canvas_pop_clip_rounded_rect(ACanvas: Pointer); cdecl; export;
+begin
+  if Assigned(ACanvas) and (TObject(ACanvas) is TFtCanvas) then
+    TFtCanvas(ACanvas).PopClipRoundedRect();
+end;
+
+procedure ft_canvas_reset_clipping(ACanvas: Pointer); cdecl; export;
+begin
+  if Assigned(ACanvas) and (TObject(ACanvas) is TFtCanvas) then
+    TFtCanvas(ACanvas).ResetAllClipping();
 end;
 
 { ========================================================================= }
@@ -6435,6 +6572,11 @@ exports
   ft_canvas_draw_text,
   ft_canvas_draw_text_left,
   ft_canvas_draw_text_centered,
+  ft_canvas_push_clip_rect,
+  ft_canvas_pop_clip_rect,
+  ft_canvas_push_clip_rounded_rect,
+  ft_canvas_pop_clip_rounded_rect,
+  ft_canvas_reset_clipping,
 
   // Notebook
   ft_notebook_create,
@@ -6630,6 +6772,8 @@ exports
   ft_widget_get_width,
   ft_widget_get_height,
   ft_widget_destroy,
+  ft_widget_is_valid,
+  ft_widget_on_destroy,
 
   // Window GPU & Direct Mode
   ft_window_set_direct_gpu_mode,
@@ -6637,6 +6781,8 @@ exports
   ft_window_on_mouse_up,
   ft_window_on_mouse_move,
   ft_window_on_key,
+  ft_window_on_resize,
+  ft_window_on_close,
 
   // Floria GPU Core & Batch
   ft_gpu_is_available,
@@ -6674,6 +6820,14 @@ exports
   ft_flexbox_create,
   ft_hbox_create,
   ft_vbox_create,
+  ft_floating_bar_create,
+  ft_floating_bar_set_anchor,
+  ft_floating_bar_get_anchor,
+  ft_floating_bar_set_margins,
+  ft_floating_bar_get_margins,
+  ft_floating_bar_set_auto_anchor,
+  ft_floating_bar_get_auto_anchor,
+  ft_floating_bar_update_anchor,
   ft_spacer_create,
   ft_flexbox_set_direction,
   ft_flexbox_get_direction,

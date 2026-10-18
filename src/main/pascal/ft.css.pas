@@ -1604,6 +1604,7 @@ begin
   // Border Radius
   decl := ABlock.GetDeclaration(cpiBorderRadius);
   if decl = nil then decl := ABlock.GetDeclaration(cpiBorderTopLeftRadius);
+  if decl = nil then decl := ABlock.GetCustom('border-radius');
   if decl <> nil then
   begin
     if decl.Value.Kind = cvkLength then

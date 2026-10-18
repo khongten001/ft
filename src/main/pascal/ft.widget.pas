@@ -23,9 +23,14 @@ const
 
 var
   GCurrentKeyboardModifiers: Cardinal = 0;
+  GAllWidgets: TFPList = nil;
 
 function FtGetKeyboardModifiers(): Cardinal;
 procedure FtSetKeyboardModifiers(AModifiers: Cardinal);
+function FtIsValidWidget(AWidget: Pointer): Boolean;
+
+type
+  TFtDestroyCallback = procedure(widget: Pointer; user_data: Pointer); cdecl;
 
 type
   TFtAlignSelf = (
@@ -68,6 +73,8 @@ type
     FGridColSpan: Integer;
     FGridRowSpan: Integer;
     FTag: PtrInt;
+    FDestroyCallback: TFtDestroyCallback;
+    FDestroyUserData: Pointer;
     function GetFont(): TFtFont; virtual;
     procedure SetFont(AValue: TFtFont); virtual;
     function GetFontDesc(): string; virtual;
@@ -177,6 +184,8 @@ type
     property GridColSpan: Integer read FGridColSpan write SetGridColSpan;
     property GridRowSpan: Integer read FGridRowSpan write SetGridRowSpan;
     property Tag: PtrInt read FTag write FTag;
+    property DestroyCallback: TFtDestroyCallback read FDestroyCallback write FDestroyCallback;
+    property DestroyUserData: Pointer read FDestroyUserData write FDestroyUserData;
   end;
 
 implementation
@@ -186,6 +195,12 @@ uses
 
 constructor TFtWidget.Create(AParent: TFtWidget);
 begin
+  if not Assigned(GAllWidgets) then
+    GAllWidgets := TFPList.Create();
+  GAllWidgets.Add(Self);
+  FDestroyCallback := nil;
+  FDestroyUserData := nil;
+
   Parent := AParent;
   Children := TFPList.Create();
   Visible := True;
@@ -225,6 +240,14 @@ destructor TFtWidget.Destroy();
 var
   w: TFtWidget;
 begin
+  if Assigned(FDestroyCallback) then
+  begin
+    FDestroyCallback(Self, FDestroyUserData);
+    FDestroyCallback := nil;
+  end;
+  if Assigned(GAllWidgets) then
+    GAllWidgets.Remove(Self);
+
   FtGetAnimator().StopTransitions(Self);
   FtGetAnimator().UnregisterContinuous(Self);
   if Assigned(Parent) then
@@ -846,8 +869,17 @@ begin
   GCurrentKeyboardModifiers := AModifiers;
 end;
 
+function FtIsValidWidget(AWidget: Pointer): Boolean;
+begin
+  Result := Assigned(AWidget) and Assigned(GAllWidgets) and (GAllWidgets.IndexOf(AWidget) >= 0);
+end;
+
 initialization
   GCurrentKeyboardModifiers := 0;
   FtSetInvalidateWidgetProc(@InvalidateWidgetAnim);
+
+finalization
+  if Assigned(GAllWidgets) then
+    FreeAndNil(GAllWidgets);
 
 end.
