@@ -940,9 +940,9 @@ begin
         begin
           iconH := Min(hh - 6.0, 16.0);
           iconW := (col.Icon.Width / col.Icon.Height) * iconH;
-          iconY := hy + (hh - iconH) * 0.5;
-          Canvas.DrawImageScaled(textStartX, iconY, iconW, iconH, col.Icon, 1.0);
-          textStartX := textStartX + iconW + 6.0;
+          iconY := Round(hy + (hh - iconH) * 0.5);
+          Canvas.DrawImageScaled(Round(textStartX), iconY, Round(iconW), Round(iconH), col.Icon, 1.0);
+          textStartX := Round(textStartX + iconW + 6.0);
           textAvailW := textAvailW - (iconW + 6.0);
         end;
 
@@ -1095,9 +1095,9 @@ begin
           begin
             iconH := Min(FRowHeight - 6.0, 16.0);
             iconW := (cellIcon.Width / cellIcon.Height) * iconH;
-            iconY := rowY + (FRowHeight - iconH) * 0.5;
-            Canvas.DrawImageScaled(textStartX, iconY, iconW, iconH, cellIcon, 1.0);
-            textStartX := textStartX + iconW + 6.0;
+            iconY := Round(rowY + (FRowHeight - iconH) * 0.5);
+            Canvas.DrawImageScaled(Round(textStartX), iconY, Round(iconW), Round(iconH), cellIcon, 1.0);
+            textStartX := Round(textStartX + iconW + 6.0);
             textAvailW := textAvailW - (iconW + 6.0);
           end;
 

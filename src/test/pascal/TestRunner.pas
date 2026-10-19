@@ -1932,6 +1932,74 @@ begin
     // 6. Clear icon
     btn.ClearIcon();
     AssertNull('Icon cleared', btn.Icon);
+
+    // 7. Subpixel grid alignment: test that icon coordinates are always integer-snapped
+    // regardless of whether caption width is odd or even, avoiding subpixel smearing.
+    btn.OnPaint := nil;
+    btn.IconWidth := 20;
+    btn.IconHeight := 20;
+    btn.IconGap := 8;
+
+    btn.IconPosition := ftbipLeft;
+    btn.Caption := 'Backups';
+    canvas := TFtCanvasAgg.Create(@buf[0, 0], 100, 100);
+    try
+      g_TestIconX := -1.0;
+      g_TestIconY := -1.0;
+      btn.Draw(canvas);
+      AssertEquals('Icon X must be integer for Backups', 0.0, Frac(g_TestIconX));
+      AssertEquals('Icon Y must be integer for Backups', 0.0, Frac(g_TestIconY));
+    finally
+      canvas.Free();
+    end;
+
+    btn.Caption := 'Celluloid';
+    canvas := TFtCanvasAgg.Create(@buf[0, 0], 100, 100);
+    try
+      g_TestIconX := -1.0;
+      g_TestIconY := -1.0;
+      btn.Draw(canvas);
+      AssertEquals('Icon X must be integer for Celluloid', 0.0, Frac(g_TestIconX));
+      AssertEquals('Icon Y must be integer for Celluloid', 0.0, Frac(g_TestIconY));
+    finally
+      canvas.Free();
+    end;
+
+    btn.IconPosition := ftbipRight;
+    canvas := TFtCanvasAgg.Create(@buf[0, 0], 100, 100);
+    try
+      g_TestIconX := -1.0;
+      g_TestIconY := -1.0;
+      btn.Draw(canvas);
+      AssertEquals('Icon X must be integer for ftbipRight', 0.0, Frac(g_TestIconX));
+      AssertEquals('Icon Y must be integer for ftbipRight', 0.0, Frac(g_TestIconY));
+    finally
+      canvas.Free();
+    end;
+
+    btn.IconPosition := ftbipTop;
+    canvas := TFtCanvasAgg.Create(@buf[0, 0], 100, 100);
+    try
+      g_TestIconX := -1.0;
+      g_TestIconY := -1.0;
+      btn.Draw(canvas);
+      AssertEquals('Icon X must be integer for ftbipTop', 0.0, Frac(g_TestIconX));
+      AssertEquals('Icon Y must be integer for ftbipTop', 0.0, Frac(g_TestIconY));
+    finally
+      canvas.Free();
+    end;
+
+    btn.IconPosition := ftbipOnly;
+    canvas := TFtCanvasAgg.Create(@buf[0, 0], 100, 100);
+    try
+      g_TestIconX := -1.0;
+      g_TestIconY := -1.0;
+      btn.Draw(canvas);
+      AssertEquals('Icon X must be integer for ftbipOnly', 0.0, Frac(g_TestIconX));
+      AssertEquals('Icon Y must be integer for ftbipOnly', 0.0, Frac(g_TestIconY));
+    finally
+      canvas.Free();
+    end;
   finally
     btn.Free();
   end;

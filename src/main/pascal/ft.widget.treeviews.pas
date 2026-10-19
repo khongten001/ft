@@ -461,9 +461,9 @@ begin
     begin
       iconH := Min(FItemHeight - 6.0, 16.0);
       iconW := (node.Icon.Width / node.Icon.Height) * iconH;
-      iconY := nodeY + (FItemHeight - iconH) * 0.5;
-      Canvas.DrawImageScaled(textStartX, iconY, iconW, iconH, node.Icon, 1.0);
-      textStartX := textStartX + iconW + 4.0;
+      iconY := Round(nodeY + (FItemHeight - iconH) * 0.5);
+      Canvas.DrawImageScaled(Round(textStartX), iconY, Round(iconW), Round(iconH), node.Icon, 1.0);
+      textStartX := Round(textStartX + iconW + 4.0);
     end;
 
     Canvas.DrawTextLeft(textStartX, nodeY + 2.0, Width - (textStartX + FPaddingX - X) - vBarW, FItemHeight - 4.0, node.Text, Font, textR, textG, textB);

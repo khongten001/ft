@@ -321,8 +321,8 @@ begin
           scale := scaleY;
         drawW := FBitmap.Width * scale;
         drawH := FBitmap.Height * scale;
-        drawX := X + (Width - drawW) / 2.0;
-        drawY := Y + (Height - drawH) / 2.0;
+        drawX := Round(X + (Width - drawW) / 2.0);
+        drawY := Round(Y + (Height - drawH) / 2.0);
       end;
     end;
 

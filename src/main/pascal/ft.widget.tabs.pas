@@ -476,9 +476,9 @@ begin
     begin
       iconH := Min(th - 6.0, 16.0);
       iconW := (page.Icon.Width / page.Icon.Height) * iconH;
-      iconY := ty + (th - iconH) * 0.5;
-      Canvas.DrawImageScaled(textStartX, iconY, iconW, iconH, page.Icon, 1.0);
-      textStartX := textStartX + iconW + 6.0;
+      iconY := Round(ty + (th - iconH) * 0.5);
+      Canvas.DrawImageScaled(Round(textStartX), iconY, Round(iconW), Round(iconH), page.Icon, 1.0);
+      textStartX := Round(textStartX + iconW + 6.0);
       textAvailW := textAvailW - (iconW + 6.0);
     end;
 
@@ -556,9 +556,9 @@ begin
       begin
         iconH := Min(th - 6.0, 16.0);
         iconW := (page.Icon.Width / page.Icon.Height) * iconH;
-        iconY := ty + (th - iconH) * 0.5;
-        Canvas.DrawImageScaled(textStartX, iconY, iconW, iconH, page.Icon, 1.0);
-        textStartX := textStartX + iconW + 6.0;
+        iconY := Round(ty + (th - iconH) * 0.5);
+        Canvas.DrawImageScaled(Round(textStartX), iconY, Round(iconW), Round(iconH), page.Icon, 1.0);
+        textStartX := Round(textStartX + iconW + 6.0);
         textAvailW := textAvailW - (iconW + 6.0);
       end;
 
